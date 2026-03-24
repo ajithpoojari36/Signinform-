@@ -17,6 +17,8 @@ const CONFIG = {
     DEFAULT_SIZE: 30,
     MIN_SIZE: 10,
     MAX_SIZE: 100,
+    MIN_ARRAY_VALUE: 5,
+    MAX_ARRAY_VALUE: 99,
     
     // Pathfinding Grid
     GRID_ROWS: 20,
@@ -404,7 +406,7 @@ function sleep(ms) {
 function generateArray(size = state.arraySize) {
     state.array = [];
     for (let i = 0; i < size; i++) {
-        state.array.push(Math.floor(Math.random() * 95) + 5);
+        state.array.push(Math.floor(Math.random() * (CONFIG.MAX_ARRAY_VALUE - CONFIG.MIN_ARRAY_VALUE + 1)) + CONFIG.MIN_ARRAY_VALUE);
     }
     return state.array;
 }
@@ -1657,7 +1659,7 @@ function generateMaze() {
             const newCol = col + dc;
             
             // Carve passage
-            state.grid[row + dr / 2][col + dc / 2] = CELL.EMPTY;
+            state.grid[row + Math.floor(dr / 2)][col + Math.floor(dc / 2)] = CELL.EMPTY;
             state.grid[newRow][newCol] = CELL.EMPTY;
             
             stack.push({ row: newRow, col: newCol });
