@@ -1,83 +1,1081 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Music Player</title>
-    <style>
-        body { font-family: Arial, sans-serif; background-color: #f0f0f0; }
-        .nav { display: flex; justify-content: center; margin-top: 20px; }
-        .nav button { margin: 0 5px; padding: 10px; border-radius: 50%; border: none; background: linear-gradient(145deg, #e6e6e6, #ffffff); box-shadow: 5px 5px 10px #d0d0d0, -5px -5px 10px #ffffff; cursor: pointer; }
-        .active { background-color: #c0c0c0; }
-        .page { display: none; }
-        .page.active { display: block; }
-        header { background: linear-gradient(145deg, #666666, #a8a8a8); padding: 20px; box-shadow: 0px 4px 10px rgba(0,0,0,0.5); }
-        footer { position: fixed; bottom: 10px; width: 100%; }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Skeuomorphic Music Player</title>
+  <style>
+    /* ── Base ────────────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --metal-dark: #3a3a3a;
+      --metal-mid:  #5a5a5a;
+      --metal-light:#8c8c8c;
+      --metal-shine:#c8c8c8;
+      --accent:     #e8a020;
+      --accent-glow:rgba(232,160,32,.45);
+      --bg:         #1e1e1e;
+      --panel:      #2c2c2c;
+      --text:       #e0e0e0;
+      --text-dim:   #888;
+      --green:      #4caf50;
+      --red:        #e53935;
+      --radius:     12px;
+    }
+
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      background: radial-gradient(ellipse at top, #2a2a2a 0%, #111 100%);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      user-select: none;
+    }
+
+    /* ── Header ──────────────────────────────────────────────────── */
+    header {
+      background: linear-gradient(180deg, #555 0%, var(--metal-dark) 100%);
+      border-bottom: 2px solid #111;
+      box-shadow: 0 4px 16px rgba(0,0,0,.7);
+      padding: 14px 20px;
+      text-align: center;
+    }
+    header h1 {
+      font-size: 1.4rem;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--metal-shine);
+      text-shadow: 0 1px 0 #000, 0 -1px 0 #777;
+    }
+    #api-status {
+      font-size: .7rem;
+      margin-top: 4px;
+      color: var(--text-dim);
+    }
+    #api-status.ok   { color: var(--green); }
+    #api-status.err  { color: var(--red); }
+
+    /* ── Tab Nav ─────────────────────────────────────────────────── */
+    .tab-nav {
+      display: flex;
+      justify-content: center;
+      gap: 6px;
+      padding: 12px 10px 0;
+      background: var(--metal-dark);
+      flex-wrap: wrap;
+    }
+    .tab-btn {
+      padding: 8px 16px;
+      font-size: .78rem;
+      font-weight: 600;
+      letter-spacing: .5px;
+      text-transform: uppercase;
+      border: none;
+      border-radius: 8px 8px 0 0;
+      cursor: pointer;
+      background: linear-gradient(180deg, #4a4a4a 0%, #2e2e2e 100%);
+      color: var(--text-dim);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.08), 0 -2px 4px rgba(0,0,0,.4);
+      transition: background .15s, color .15s, transform .1s;
+    }
+    .tab-btn:hover { background: linear-gradient(180deg, #606060 0%, #3a3a3a 100%); color: var(--text); }
+    .tab-btn.active {
+      background: linear-gradient(180deg, var(--accent) 0%, #b07010 100%);
+      color: #111;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.25);
+    }
+    .tab-btn:active { transform: translateY(1px); }
+
+    /* ── Pages ───────────────────────────────────────────────────── */
+    .page { display: none; padding: 20px; }
+    .page.active { display: block; }
+
+    /* ── Shared card ─────────────────────────────────────────────── */
+    .card {
+      background: var(--panel);
+      border-radius: var(--radius);
+      border: 1px solid #444;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.06), 0 4px 12px rgba(0,0,0,.5);
+      padding: 18px;
+      margin-bottom: 16px;
+    }
+
+    /* ── Skeuomorphic button mixin ───────────────────────────────── */
+    .sk-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border: none;
+      cursor: pointer;
+      font-weight: 700;
+      transition: all .1s;
+      outline: none;
+    }
+    .sk-btn-round {
+      border-radius: 50%;
+      background: radial-gradient(circle at 35% 35%, #6a6a6a, #2a2a2a);
+      box-shadow: 4px 4px 8px #111, -2px -2px 6px #555, inset 0 1px 0 rgba(255,255,255,.15);
+      color: var(--metal-shine);
+    }
+    .sk-btn-round:active {
+      box-shadow: 2px 2px 4px #111, -1px -1px 3px #444, inset 0 2px 4px rgba(0,0,0,.6);
+      transform: scale(.96);
+    }
+    .sk-btn-accent {
+      background: linear-gradient(145deg, #f0b030, #c07010);
+      box-shadow: 3px 3px 8px #111, -1px -1px 4px rgba(255,200,60,.2), inset 0 1px 0 rgba(255,255,255,.3);
+      color: #111;
+      border-radius: 8px;
+      padding: 8px 18px;
+    }
+    .sk-btn-accent:active { transform: scale(.97); box-shadow: 1px 1px 4px #111; }
+    .sk-btn-small {
+      background: linear-gradient(145deg, #505050, #2a2a2a);
+      box-shadow: 2px 2px 5px #111, inset 0 1px 0 rgba(255,255,255,.08);
+      color: var(--text-dim);
+      border-radius: 6px;
+      padding: 5px 12px;
+      font-size: .75rem;
+    }
+    .sk-btn-small:active { transform: scale(.97); }
+    .sk-btn-small:hover { color: var(--text); }
+    .sk-btn-danger {
+      background: linear-gradient(145deg, #c0392b, #7b241c);
+      color: #fff;
+      border-radius: 6px;
+      padding: 5px 12px;
+      font-size: .75rem;
+      box-shadow: 2px 2px 5px #111;
+    }
+
+    /* ── Now Playing ─────────────────────────────────────────────── */
+    #now-playing-page .artwork-wrap {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 16px;
+    }
+    #artwork {
+      width: 180px;
+      height: 180px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 4px solid #444;
+      box-shadow: 0 0 24px rgba(0,0,0,.8), 0 0 8px var(--accent-glow);
+      animation: spin 8s linear infinite;
+      animation-play-state: paused;
+      background: #333;
+    }
+    #artwork.spinning { animation-play-state: running; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .track-info { text-align: center; margin-bottom: 16px; }
+    #track-title { font-size: 1.1rem; font-weight: 700; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    #track-artist { font-size: .85rem; color: var(--text-dim); margin-top: 4px; }
+    #track-album  { font-size: .75rem; color: #666; margin-top: 2px; }
+
+    /* Progress bar */
+    .progress-wrap {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+    .progress-wrap span { font-size: .72rem; color: var(--text-dim); min-width: 36px; text-align: center; }
+    #progress-bar {
+      flex: 1;
+      -webkit-appearance: none;
+      height: 6px;
+      border-radius: 3px;
+      background: #333;
+      box-shadow: inset 0 1px 3px rgba(0,0,0,.6);
+      cursor: pointer;
+      outline: none;
+    }
+    #progress-bar::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 14px; height: 14px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 35% 35%, #f0c060, #a07020);
+      box-shadow: 0 0 4px rgba(0,0,0,.5);
+      cursor: pointer;
+    }
+
+    /* Controls */
+    .controls {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 16px;
+    }
+    #btn-play-pause { width: 58px; height: 58px; font-size: 1.3rem; }
+    #btn-prev, #btn-next { width: 44px; height: 44px; font-size: 1rem; }
+    #btn-shuffle, #btn-repeat { width: 36px; height: 36px; font-size: .8rem; }
+    .active-mode { color: var(--accent) !important; }
+
+    /* Volume */
+    .volume-wrap {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .volume-wrap span { font-size: .9rem; }
+    #volume-bar {
+      flex: 1;
+      -webkit-appearance: none;
+      height: 5px;
+      border-radius: 3px;
+      background: #333;
+      box-shadow: inset 0 1px 3px rgba(0,0,0,.5);
+      cursor: pointer;
+      outline: none;
+    }
+    #volume-bar::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 12px; height: 12px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 35% 35%, #aaa, #444);
+      cursor: pointer;
+    }
+    #vol-icon { min-width: 22px; }
+
+    /* ── Search / Library ────────────────────────────────────────── */
+    .search-bar {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+    .search-bar input {
+      flex: 1;
+      background: #1a1a1a;
+      border: 1px solid #444;
+      border-radius: 8px;
+      padding: 8px 12px;
+      color: var(--text);
+      font-size: .85rem;
+      outline: none;
+      box-shadow: inset 0 2px 4px rgba(0,0,0,.4);
+    }
+    .search-bar input:focus { border-color: var(--accent); }
+
+    .track-list { list-style: none; max-height: 420px; overflow-y: auto; }
+    .track-list::-webkit-scrollbar { width: 6px; }
+    .track-list::-webkit-scrollbar-track { background: #1a1a1a; }
+    .track-list::-webkit-scrollbar-thumb { background: #555; border-radius: 3px; }
+
+    .track-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 10px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background .12s;
+      border-bottom: 1px solid #333;
+    }
+    .track-item:hover { background: #383838; }
+    .track-item.playing { background: #3a3010; }
+    .track-item img { width: 40px; height: 40px; border-radius: 6px; object-fit: cover; background: #333; flex-shrink: 0; }
+    .track-item-info { flex: 1; overflow: hidden; }
+    .track-item-title { font-size: .82rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .track-item-artist { font-size: .72rem; color: var(--text-dim); }
+    .track-item-dur { font-size: .7rem; color: var(--text-dim); flex-shrink: 0; }
+    .track-item-actions { display: flex; gap: 4px; flex-shrink: 0; }
+
+    .empty-msg { color: var(--text-dim); text-align: center; padding: 30px 0; font-size: .85rem; }
+
+    /* ── Equalizer ───────────────────────────────────────────────── */
+    .eq-grid {
+      display: flex;
+      justify-content: space-around;
+      align-items: flex-end;
+      gap: 10px;
+      padding: 10px 0;
+    }
+    .eq-band { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+    .eq-band label { font-size: .65rem; color: var(--text-dim); }
+    .eq-slider {
+      -webkit-appearance: slider-vertical;
+      writing-mode: vertical-lr;
+      direction: rtl;
+      width: 28px;
+      height: 120px;
+      background: #1a1a1a;
+      border-radius: 4px;
+      cursor: pointer;
+      outline: none;
+    }
+    .eq-value { font-size: .65rem; color: var(--accent); }
+    .eq-presets { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 14px; }
+
+    /* ── Playlists ────────────────────────────────────────────────── */
+    .playlist-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 12px;
+      border-radius: 8px;
+      border-bottom: 1px solid #333;
+      cursor: pointer;
+      transition: background .12s;
+    }
+    .playlist-item:hover { background: #383838; }
+    .playlist-item span { font-size: .85rem; }
+    .playlist-meta { font-size: .72rem; color: var(--text-dim); }
+
+    .new-playlist-form { display: flex; gap: 8px; margin-bottom: 14px; }
+    .new-playlist-form input {
+      flex: 1;
+      background: #1a1a1a;
+      border: 1px solid #444;
+      border-radius: 8px;
+      padding: 8px 12px;
+      color: var(--text);
+      font-size: .85rem;
+      outline: none;
+      box-shadow: inset 0 2px 4px rgba(0,0,0,.4);
+    }
+    .new-playlist-form input:focus { border-color: var(--accent); }
+
+    /* ── Settings ────────────────────────────────────────────────── */
+    .setting-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 0;
+      border-bottom: 1px solid #383838;
+    }
+    .setting-row:last-child { border-bottom: none; }
+    .setting-label { font-size: .85rem; }
+    .setting-desc  { font-size: .72rem; color: var(--text-dim); margin-top: 2px; }
+    .toggle-wrap { position: relative; width: 44px; height: 24px; }
+    .toggle-wrap input { opacity: 0; width: 0; height: 0; }
+    .toggle-wrap .slider-toggle {
+      position: absolute; inset: 0;
+      background: #444; border-radius: 12px; cursor: pointer;
+      transition: background .2s;
+    }
+    .toggle-wrap .slider-toggle::after {
+      content: '';
+      position: absolute;
+      left: 3px; top: 3px;
+      width: 18px; height: 18px;
+      border-radius: 50%;
+      background: #aaa;
+      transition: transform .2s;
+    }
+    .toggle-wrap input:checked + .slider-toggle { background: var(--accent); }
+    .toggle-wrap input:checked + .slider-toggle::after { transform: translateX(20px); background: #fff; }
+
+    select.sk-select {
+      background: #1a1a1a;
+      border: 1px solid #555;
+      border-radius: 6px;
+      color: var(--text);
+      padding: 4px 8px;
+      font-size: .8rem;
+      outline: none;
+      cursor: pointer;
+    }
+
+    /* ── Toast notification ──────────────────────────────────────── */
+    #toast {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%) translateY(60px);
+      background: #333;
+      color: var(--text);
+      padding: 8px 20px;
+      border-radius: 20px;
+      font-size: .8rem;
+      box-shadow: 0 4px 12px rgba(0,0,0,.6);
+      transition: transform .3s;
+      z-index: 999;
+      pointer-events: none;
+    }
+    #toast.show { transform: translateX(-50%) translateY(0); }
+
+    /* ── Spinner ─────────────────────────────────────────────────── */
+    .spinner {
+      display: inline-block;
+      width: 18px; height: 18px;
+      border: 2px solid #555;
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+      vertical-align: middle;
+      margin-left: 6px;
+    }
+
+    /* ── Responsive ──────────────────────────────────────────────── */
+    @media (max-width: 480px) {
+      .tab-btn { padding: 6px 10px; font-size: .7rem; }
+      #artwork  { width: 140px; height: 140px; }
+    }
+  </style>
 </head>
 <body>
-    <header>
-        <h1 style="color:#fff; text-align:center;">Skeuomorphic Music Player</h1>
-    </header>
-    <div class="nav">
-        <button onclick="showPage('nowPlaying')">Now Playing</button>
-        <button onclick="showPage('musicLibrary')">Music Library</button>
-        <button onclick="showPage('equalizer')">Equalizer</button>
-        <button onclick="showPage('settings')">Settings</button>
-        <button onclick="showPage('playlistManager')">Playlist Manager</button>
+
+<!-- ═══ HEADER ════════════════════════════════════════════════════════════ -->
+<header>
+  <h1>♪ Skeuomorphic Music Player</h1>
+  <div id="api-status">Connecting to backend…</div>
+</header>
+
+<!-- ═══ TAB NAV ══════════════════════════════════════════════════════════ -->
+<nav class="tab-nav">
+  <button class="tab-btn active" data-page="now-playing-page">Now Playing</button>
+  <button class="tab-btn" data-page="library-page">Library</button>
+  <button class="tab-btn" data-page="equalizer-page">Equalizer</button>
+  <button class="tab-btn" data-page="playlists-page">Playlists</button>
+  <button class="tab-btn" data-page="settings-page">Settings</button>
+</nav>
+
+<!-- ═══ NOW PLAYING ═══════════════════════════════════════════════════════ -->
+<section id="now-playing-page" class="page active">
+  <div class="card">
+    <div class="artwork-wrap">
+      <img id="artwork" src="" alt="Album Art" />
+    </div>
+    <div class="track-info">
+      <div id="track-title">No track selected</div>
+      <div id="track-artist">—</div>
+      <div id="track-album"></div>
+    </div>
+    <div class="progress-wrap">
+      <span id="time-current">0:00</span>
+      <input id="progress-bar" type="range" min="0" max="100" value="0" />
+      <span id="time-total">0:00</span>
+    </div>
+    <div class="controls">
+      <button id="btn-shuffle" class="sk-btn sk-btn-round" title="Shuffle">⇄</button>
+      <button id="btn-prev"    class="sk-btn sk-btn-round" title="Previous">⏮</button>
+      <button id="btn-play-pause" class="sk-btn sk-btn-round" title="Play / Pause">▶</button>
+      <button id="btn-next"   class="sk-btn sk-btn-round" title="Next">⏭</button>
+      <button id="btn-repeat" class="sk-btn sk-btn-round" title="Repeat">↻</button>
+    </div>
+    <div class="volume-wrap">
+      <span id="vol-icon">🔊</span>
+      <input id="volume-bar" type="range" min="0" max="1" step="0.02" value="0.8" />
+    </div>
+  </div>
+
+  <!-- Recommendations -->
+  <div class="card">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+      <strong style="font-size:.85rem;letter-spacing:.5px;">RECOMMENDED</strong>
+      <div style="display:flex;gap:6px;align-items:center;">
+        <select id="reco-genre" class="sk-select">
+          <option>Pop</option><option>Rock</option><option>Jazz</option>
+          <option>Classical</option><option>Hip Hop</option><option>Electronic</option>
+          <option>R&amp;B</option><option>Country</option>
+        </select>
+        <button id="btn-reco" class="sk-btn sk-btn-small">Load</button>
+      </div>
+    </div>
+    <ul id="reco-list" class="track-list">
+      <li class="empty-msg">Press "Load" to get recommendations.</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ═══ LIBRARY ═══════════════════════════════════════════════════════════ -->
+<section id="library-page" class="page">
+  <div class="card">
+    <div class="search-bar">
+      <input id="search-input" type="text" placeholder="Search songs, artists…" />
+      <button id="btn-search" class="sk-btn sk-btn-accent">Search</button>
+    </div>
+    <div style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap;">
+      <button class="sk-btn sk-btn-small" data-q="Top Hits">🔥 Top Hits</button>
+      <button class="sk-btn sk-btn-small" data-q="Chill Vibes">😌 Chill</button>
+      <button class="sk-btn sk-btn-small" data-q="Workout">💪 Workout</button>
+      <button class="sk-btn sk-btn-small" data-q="Classic Rock">🎸 Classic Rock</button>
+    </div>
+    <ul id="search-results" class="track-list">
+      <li class="empty-msg">Search for music above.</li>
+    </ul>
+  </div>
+
+  <!-- Favorites -->
+  <div class="card">
+    <strong style="font-size:.85rem;letter-spacing:.5px;display:block;margin-bottom:10px;">❤ FAVORITES</strong>
+    <ul id="fav-list" class="track-list">
+      <li class="empty-msg">No favorites yet.</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ═══ EQUALIZER ═══════════════════════════════════════════════════════════ -->
+<section id="equalizer-page" class="page">
+  <div class="card">
+    <strong style="font-size:.85rem;letter-spacing:.5px;display:block;margin-bottom:12px;">🎚 EQUALIZER</strong>
+    <div class="eq-grid" id="eq-grid">
+      <!-- Bands injected by JS -->
+    </div>
+    <div class="eq-presets">
+      <button class="sk-btn sk-btn-small" data-preset="flat">Flat</button>
+      <button class="sk-btn sk-btn-small" data-preset="bass">Bass Boost</button>
+      <button class="sk-btn sk-btn-small" data-preset="vocal">Vocal</button>
+      <button class="sk-btn sk-btn-small" data-preset="rock">Rock</button>
+      <button class="sk-btn sk-btn-small" data-preset="jazz">Jazz</button>
+      <button class="sk-btn sk-btn-small" data-preset="electronic">Electronic</button>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ PLAYLISTS ═══════════════════════════════════════════════════════════ -->
+<section id="playlists-page" class="page">
+  <div class="card">
+    <strong style="font-size:.85rem;letter-spacing:.5px;display:block;margin-bottom:10px;">📋 PLAYLISTS</strong>
+    <div class="new-playlist-form">
+      <input id="pl-name-input" type="text" placeholder="New playlist name…" />
+      <button id="btn-create-pl" class="sk-btn sk-btn-accent">Create</button>
+    </div>
+    <ul id="playlist-list" class="track-list">
+      <li class="empty-msg">No playlists yet. Create one above.</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ═══ SETTINGS ════════════════════════════════════════════════════════════ -->
+<section id="settings-page" class="page">
+  <div class="card">
+    <strong style="font-size:.85rem;letter-spacing:.5px;display:block;margin-bottom:12px;">⚙ SETTINGS</strong>
+
+    <div class="setting-row">
+      <div>
+        <div class="setting-label">Backend URL</div>
+        <div class="setting-desc">API server address</div>
+      </div>
+      <input id="setting-api-url" class="sk-select" style="width:160px;"
+             type="text" value="http://localhost:3000" />
     </div>
 
-    <div id="nowPlaying" class="page active">
-        <h2>Now Playing</h2>
-        <p>Current track details and controls will appear here.</p>
-    </div>
-    <div id="musicLibrary" class="page">
-        <h2>Music Library</h2>
-        <p>Your music files will be listed here.</p>
-    </div>
-    <div id="equalizer" class="page">
-        <h2>Equalizer</h2>
-        <p>Equalizer controls will be displayed here.</p>
-    </div>
-    <div id="settings" class="page">
-        <h2>Settings</h2>
-        <p>Configuration options will be available here.</p>
-    </div>
-    <div id="playlistManager" class="page">
-        <h2>Playlist Manager</h2>
-        <p>Manage your playlists here.</p>
+    <div class="setting-row">
+      <div>
+        <div class="setting-label">Audio Quality</div>
+        <div class="setting-desc">Stream quality preference</div>
+      </div>
+      <select id="setting-quality" class="sk-select">
+        <option value="low">Low (64 kbps)</option>
+        <option value="medium" selected>Medium (128 kbps)</option>
+        <option value="high">High (320 kbps)</option>
+      </select>
     </div>
 
-    <footer>
-        <div class="nav">
-            <button class="active" onclick="changePage(0)"></button>
-            <button onclick="changePage(1)"></button>
-            <button onclick="changePage(2)"></button>
-            <button onclick="changePage(3)"></button>
-            <button onclick="changePage(4)"></button>
+    <div class="setting-row">
+      <div>
+        <div class="setting-label">Auto Play Next</div>
+        <div class="setting-desc">Play next track automatically</div>
+      </div>
+      <label class="toggle-wrap">
+        <input type="checkbox" id="setting-autoplay" checked />
+        <span class="slider-toggle"></span>
+      </label>
+    </div>
+
+    <div class="setting-row">
+      <div>
+        <div class="setting-label">Show Notifications</div>
+        <div class="setting-desc">Toast alerts for track changes</div>
+      </div>
+      <label class="toggle-wrap">
+        <input type="checkbox" id="setting-notify" checked />
+        <span class="slider-toggle"></span>
+      </label>
+    </div>
+
+    <div class="setting-row">
+      <div>
+        <div class="setting-label">Artwork Spin</div>
+        <div class="setting-desc">Rotate artwork while playing</div>
+      </div>
+      <label class="toggle-wrap">
+        <input type="checkbox" id="setting-spin" checked />
+        <span class="slider-toggle"></span>
+      </label>
+    </div>
+
+    <div style="margin-top:16px;">
+      <button id="btn-check-api" class="sk-btn sk-btn-accent">Test Connection</button>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ TOAST ════════════════════════════════════════════════════════════════ -->
+<div id="toast"></div>
+
+<audio id="audio-el" preload="none"></audio>
+
+<script>
+/* ─────────────────────────────────────────────────────────────
+   State
+──────────────────────────────────────────────────────────────*/
+let apiBase   = localStorage.getItem('apiBase') || 'http://localhost:3000';
+let queue     = [];   // array of track objects
+let queueIdx  = -1;
+let shuffled  = false;
+let repeatMode= 'none'; // none | one | all
+let playlists = [];
+let favorites = [];
+
+const audio = document.getElementById('audio-el');
+
+/* ─────────────────────────────────────────────────────────────
+   API helpers
+──────────────────────────────────────────────────────────────*/
+async function apiFetch(path, opts = {}) {
+  const base = (document.getElementById('setting-api-url').value || apiBase).replace(/\/$/, '');
+  const res  = await fetch(base + path, opts);
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: res.statusText }));
+    throw new Error(err.error || res.statusText);
+  }
+  return res.json();
+}
+
+async function checkApi() {
+  const el = document.getElementById('api-status');
+  try {
+    const data = await apiFetch('/api/health');
+    el.textContent = '● Backend connected (' + data.timestamp + ')';
+    el.className   = 'ok';
+    return true;
+  } catch (e) {
+    el.textContent = '● Backend offline – local mode only';
+    el.className   = 'err';
+    return false;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Toast
+──────────────────────────────────────────────────────────────*/
+let toastTimer;
+function toast(msg) {
+  if (!document.getElementById('setting-notify').checked) return;
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 2800);
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Utility
+──────────────────────────────────────────────────────────────*/
+function fmt(sec) {
+  if (!sec || isNaN(sec)) return '0:00';
+  const m = Math.floor(sec / 60), s = Math.floor(sec % 60);
+  return m + ':' + String(s).padStart(2, '0');
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Page navigation
+──────────────────────────────────────────────────────────────*/
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById(btn.dataset.page).classList.add('active');
+  });
+});
+
+/* ─────────────────────────────────────────────────────────────
+   Track list rendering
+──────────────────────────────────────────────────────────────*/
+
+/** Allowlist: only https:// or http:// artwork URLs; block data: and javascript: */
+function safeImgSrc(url) {
+  if (!url) return '';
+  try {
+    const u = new URL(url);
+    if (u.protocol === 'https:' || u.protocol === 'http:') return url;
+  } catch { /* ignore */ }
+  return '';
+}
+
+function trackItemHTML(track, opts = {}) {
+  const isFav = favorites.includes(track.id);
+  const dur   = fmt(track.duration);
+  const safeId = escHtml(track.id);
+  const artSrc = safeImgSrc(track.artwork);
+  return `
+    <li class="track-item" data-id="${safeId}" data-pool-id="${escHtml(opts.poolId||'')}">
+      <img src="${escHtml(artSrc)}" alt="" />
+      <div class="track-item-info">
+        <div class="track-item-title">${escHtml(track.title)}</div>
+        <div class="track-item-artist">${escHtml(track.artist)}</div>
+      </div>
+      <span class="track-item-dur">${escHtml(dur)}</span>
+      <div class="track-item-actions">
+        <button class="sk-btn sk-btn-small fav-btn" data-id="${safeId}" title="${isFav?'Unfavorite':'Favorite'}">${isFav?'❤':'♡'}</button>
+        ${opts.showAddPl ? `<button class="sk-btn sk-btn-small add-pl-btn" data-id="${safeId}" title="Add to playlist">＋</button>` : ''}
+      </div>
+    </li>`;
+}
+
+function escHtml(s) {
+  return String(s||'')
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+/** Pools indexed by a short key so we can retrieve them on click without embedding JSON in HTML */
+const _pools = {};
+
+function renderList(ulId, tracks, opts) {
+  const ul = document.getElementById(ulId);
+  if (!tracks.length) { ul.innerHTML = '<li class="empty-msg">No results.</li>'; return; }
+  const poolId = ulId; // use the list id as pool key
+  if (opts && opts.pool) _pools[poolId] = opts.pool;
+  ul.innerHTML = tracks.map(t => trackItemHTML(t, { ...opts, poolId })).join('');
+
+  // Event delegation – no inline handlers
+  ul.addEventListener('click', handleListClick);
+  ul.querySelectorAll('.fav-btn').forEach(b => b.addEventListener('click', toggleFav));
+  ul.querySelectorAll('.add-pl-btn').forEach(b => b.addEventListener('click', showAddToPlaylist));
+}
+
+function handleListClick(e) {
+  const item = e.target.closest('.track-item');
+  if (!item) return;
+  // Clicks inside .track-item-actions are handled by their own listeners
+  if (e.target.closest('.track-item-actions')) return;
+  const id     = item.dataset.id;
+  const poolId = item.dataset.poolId;
+  const pool   = _pools[poolId] || [];
+  playTrackById(id, pool);
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Playback
+──────────────────────────────────────────────────────────────*/
+function playTrackById(id, pool = []) {
+  if (pool.length) {
+    queue    = pool;
+    queueIdx = pool.findIndex(t => t.id === id);
+    if (queueIdx === -1) { queue.unshift({id}); queueIdx = 0; }
+  }
+  const track = queue[queueIdx] || { id };
+  loadTrack(track);
+}
+
+function loadTrack(track) {
+  if (!track) return;
+  const streamUrl = (document.getElementById('setting-api-url').value || apiBase).replace(/\/$/, '')
+                    + '/api/stream/' + encodeURIComponent(track.id);
+  audio.src    = streamUrl;
+  audio.volume = parseFloat(document.getElementById('volume-bar').value);
+  audio.play().catch((err) => { toast('Playback error: ' + err.message); });
+
+  // Update Now Playing UI
+  document.getElementById('track-title').textContent  = track.title  || 'Unknown';
+  document.getElementById('track-artist').textContent = track.artist || '—';
+  document.getElementById('track-album').textContent  = track.album  || '';
+  const art = document.getElementById('artwork');
+  art.src   = track.artwork || '';
+  if (document.getElementById('setting-spin').checked) art.classList.add('spinning');
+
+  document.getElementById('btn-play-pause').textContent = '⏸';
+  toast('▶ ' + (track.title || 'Unknown'));
+
+  // Highlight in lists
+  document.querySelectorAll('.track-item').forEach(el => {
+    el.classList.toggle('playing', el.dataset.id === track.id);
+  });
+}
+
+audio.addEventListener('timeupdate', () => {
+  const pct = audio.duration ? (audio.currentTime / audio.duration) * 100 : 0;
+  document.getElementById('progress-bar').value  = pct;
+  document.getElementById('time-current').textContent = fmt(audio.currentTime);
+  document.getElementById('time-total').textContent   = fmt(audio.duration);
+});
+
+audio.addEventListener('ended', () => {
+  document.getElementById('artwork').classList.remove('spinning');
+  if (repeatMode === 'one') {
+    audio.play().catch((err) => { toast('Playback error: ' + err.message); });
+  } else if (repeatMode === 'all' || queueIdx < queue.length - 1) {
+    nextTrack();
+  }
+});
+
+audio.addEventListener('pause',  () => {
+  document.getElementById('btn-play-pause').textContent = '▶';
+  document.getElementById('artwork').classList.remove('spinning');
+});
+audio.addEventListener('play',   () => {
+  document.getElementById('btn-play-pause').textContent = '⏸';
+  if (document.getElementById('setting-spin').checked)
+    document.getElementById('artwork').classList.add('spinning');
+});
+
+document.getElementById('progress-bar').addEventListener('input', e => {
+  if (audio.duration) audio.currentTime = (e.target.value / 100) * audio.duration;
+});
+document.getElementById('volume-bar').addEventListener('input', e => {
+  audio.volume = e.target.value;
+  document.getElementById('vol-icon').textContent = e.target.value > 0.5 ? '🔊' : e.target.value > 0 ? '🔉' : '🔇';
+});
+
+document.getElementById('btn-play-pause').addEventListener('click', () => {
+  if (audio.paused) audio.play().catch((err) => { toast('Playback error: ' + err.message); }); else audio.pause();
+});
+document.getElementById('btn-prev').addEventListener('click', prevTrack);
+document.getElementById('btn-next').addEventListener('click', nextTrack);
+
+document.getElementById('btn-shuffle').addEventListener('click', () => {
+  shuffled = !shuffled;
+  document.getElementById('btn-shuffle').classList.toggle('active-mode', shuffled);
+  toast(shuffled ? 'Shuffle ON' : 'Shuffle OFF');
+});
+
+document.getElementById('btn-repeat').addEventListener('click', () => {
+  const modes = ['none','one','all'];
+  repeatMode  = modes[(modes.indexOf(repeatMode)+1) % modes.length];
+  const icons  = { none:'↻', one:'🔂', all:'🔁' };
+  document.getElementById('btn-repeat').textContent = icons[repeatMode];
+  document.getElementById('btn-repeat').classList.toggle('active-mode', repeatMode !== 'none');
+  toast('Repeat: ' + repeatMode);
+});
+
+function nextTrack() {
+  if (!queue.length) return;
+  if (shuffled) {
+    queueIdx = Math.floor(Math.random() * queue.length);
+  } else {
+    queueIdx = (queueIdx + 1) % queue.length;
+  }
+  loadTrack(queue[queueIdx]);
+}
+
+function prevTrack() {
+  if (!queue.length) return;
+  queueIdx = (queueIdx - 1 + queue.length) % queue.length;
+  loadTrack(queue[queueIdx]);
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Search
+──────────────────────────────────────────────────────────────*/
+async function doSearch(q) {
+  const ul = document.getElementById('search-results');
+  ul.innerHTML = '<li class="empty-msg">Searching… <span class="spinner"></span></li>';
+  try {
+    const data = await apiFetch('/api/search?q=' + encodeURIComponent(q) + '&limit=25');
+    renderList('search-results', data.results, { pool: data.results, showAddPl: true });
+  } catch (e) {
+    ul.innerHTML = '<li class="empty-msg">Error: ' + escHtml(e.message) + '</li>';
+  }
+}
+
+document.getElementById('btn-search').addEventListener('click', () => {
+  const q = document.getElementById('search-input').value.trim();
+  if (q) doSearch(q);
+});
+document.getElementById('search-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') document.getElementById('btn-search').click();
+});
+document.querySelectorAll('[data-q]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.getElementById('search-input').value = btn.dataset.q;
+    doSearch(btn.dataset.q);
+    // Switch to library tab
+    document.querySelector('[data-page="library-page"]').click();
+  });
+});
+
+/* ─────────────────────────────────────────────────────────────
+   Recommendations
+──────────────────────────────────────────────────────────────*/
+document.getElementById('btn-reco').addEventListener('click', async () => {
+  const genre = document.getElementById('reco-genre').value;
+  const ul    = document.getElementById('reco-list');
+  ul.innerHTML = '<li class="empty-msg">Loading… <span class="spinner"></span></li>';
+  try {
+    const data = await apiFetch('/api/recommendations?genre=' + encodeURIComponent(genre) + '&limit=10');
+    renderList('reco-list', data.results, { pool: data.results });
+  } catch (e) {
+    ul.innerHTML = '<li class="empty-msg">Error: ' + escHtml(e.message) + '</li>';
+  }
+});
+
+/* ─────────────────────────────────────────────────────────────
+   Favorites
+──────────────────────────────────────────────────────────────*/
+async function loadFavorites() {
+  try {
+    const data = await apiFetch('/api/favorites');
+    favorites  = data.favorites.map(t => t.id);
+    renderList('fav-list', data.favorites, { pool: data.favorites, showAddPl: true });
+  } catch (e) {
+    document.getElementById('fav-list').innerHTML = '<li class="empty-msg">Could not load favorites.</li>';
+  }
+}
+
+async function toggleFav(e) {
+  const id = e.currentTarget.dataset.id;
+  try {
+    const data = await apiFetch('/api/favorite/' + encodeURIComponent(id), { method: 'POST' });
+    toast(data.favorited ? '❤ Added to favorites' : '♡ Removed from favorites');
+    loadFavorites();
+  } catch (err) {
+    toast('Error: ' + err.message);
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Playlists
+──────────────────────────────────────────────────────────────*/
+async function loadPlaylists() {
+  try {
+    const data = await apiFetch('/api/playlist');
+    playlists  = data.playlists;
+    const ul   = document.getElementById('playlist-list');
+    if (!playlists.length) { ul.innerHTML = '<li class="empty-msg">No playlists yet. Create one above.</li>'; return; }
+    ul.innerHTML = playlists.map(pl => `
+      <li class="playlist-item" data-plid="${pl.id}">
+        <div>
+          <span>${escHtml(pl.name)}</span>
+          <div class="playlist-meta">${pl.trackIds.length} tracks</div>
         </div>
-    </footer>
+        <button class="sk-btn sk-btn-danger del-pl-btn" data-plid="${pl.id}">✕</button>
+      </li>`).join('');
+    ul.querySelectorAll('.del-pl-btn').forEach(b => b.addEventListener('click', async e => {
+      e.stopPropagation();
+      await apiFetch('/api/playlist/' + e.currentTarget.dataset.plid, { method: 'DELETE' });
+      loadPlaylists();
+    }));
+  } catch (e) {
+    document.getElementById('playlist-list').innerHTML = '<li class="empty-msg">Could not load playlists.</li>';
+  }
+}
 
-    <script>
-        let currentPage = 0;
-        const pages = document.querySelectorAll('.page');
+document.getElementById('btn-create-pl').addEventListener('click', async () => {
+  const name = document.getElementById('pl-name-input').value.trim();
+  if (!name) { toast('Enter a playlist name.'); return; }
+  try {
+    await apiFetch('/api/playlist', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name }),
+    });
+    document.getElementById('pl-name-input').value = '';
+    loadPlaylists();
+    toast('Playlist "' + name + '" created');
+  } catch (e) {
+    toast('Error: ' + e.message);
+  }
+});
 
-        function showPage(pageId) {
-            pages.forEach(page => {
-                page.classList.remove('active');
-            });
-            document.getElementById(pageId).classList.add('active');
-        }
+function showAddToPlaylist(e) {
+  const trackId = e.currentTarget.dataset.id;
+  if (!playlists.length) { toast('No playlists. Create one first.'); return; }
+  const plName  = playlists[0].name; // simplified: add to first playlist
+  apiFetch('/api/playlist/' + playlists[0].id + '/tracks', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ trackIds: [trackId] }),
+  }).then(() => { toast('Added to "' + plName + '"'); loadPlaylists(); })
+    .catch(err => toast('Error: ' + err.message));
+}
 
-        function changePage(index) {
-            currentPage = index;
-            pages.forEach((page, idx) => {
-                page.classList.remove('active');
-                if (idx === currentPage) {
-                    page.classList.add('active');
-                }
-            });
-        }
-    </script>
+/* ─────────────────────────────────────────────────────────────
+   Equalizer
+──────────────────────────────────────────────────────────────*/
+const EQ_BANDS = [60, 170, 310, 600, 1000, 3000, 6000, 12000, 14000, 16000];
+let eqFilters  = [];
+
+function initEQ() {
+  if (!window.AudioContext && !window.webkitAudioContext) return;
+  const ctx  = new (window.AudioContext || window.webkitAudioContext)();
+  const src  = ctx.createMediaElementSource(audio);
+  let chain  = src;
+  eqFilters  = EQ_BANDS.map(freq => {
+    const f  = ctx.createBiquadFilter();
+    f.type   = 'peaking';
+    f.frequency.value = freq;
+    f.Q.value         = 1;
+    f.gain.value      = 0;
+    chain.connect(f);
+    chain = f;
+    return f;
+  });
+  chain.connect(ctx.destination);
+
+  const grid = document.getElementById('eq-grid');
+  grid.innerHTML = '';
+  EQ_BANDS.forEach((freq, i) => {
+    const label = freq >= 1000 ? (freq/1000)+'kHz' : freq+'Hz';
+    const band  = document.createElement('div');
+    band.className = 'eq-band';
+    band.innerHTML = `
+      <span class="eq-value" id="eq-val-${i}">0</span>
+      <input type="range" class="eq-slider" min="-12" max="12" value="0" data-idx="${i}" />
+      <label>${label}</label>`;
+    grid.appendChild(band);
+    band.querySelector('.eq-slider').addEventListener('input', e => {
+      const val = parseFloat(e.target.value);
+      eqFilters[i].gain.value = val;
+      document.getElementById('eq-val-' + i).textContent = (val > 0 ? '+' : '') + val;
+    });
+  });
+}
+
+const EQ_PRESETS = {
+  flat:       [0,0,0,0,0,0,0,0,0,0],
+  bass:       [8,7,4,2,0,0,0,0,0,0],
+  vocal:      [0,-2,-4,2,6,4,2,0,-2,-2],
+  rock:       [5,4,2,0,-2,2,4,5,5,4],
+  jazz:       [4,3,1,2,4,4,3,2,1,0],
+  electronic: [6,5,0,0,4,4,0,2,4,5],
+};
+
+document.querySelectorAll('[data-preset]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const p = EQ_PRESETS[btn.dataset.preset] || EQ_PRESETS.flat;
+    document.querySelectorAll('.eq-slider').forEach((sl, i) => {
+      sl.value = p[i];
+      if (eqFilters[i]) eqFilters[i].gain.value = p[i];
+      const val = parseFloat(sl.value);
+      const valEl = document.getElementById('eq-val-' + i);
+      if (valEl) valEl.textContent = (val > 0 ? '+' : '') + val;
+    });
+    toast('EQ preset: ' + btn.dataset.preset);
+  });
+});
+
+/* ─────────────────────────────────────────────────────────────
+   Settings persistence
+──────────────────────────────────────────────────────────────*/
+document.getElementById('setting-api-url').value = apiBase;
+document.getElementById('setting-api-url').addEventListener('change', e => {
+  apiBase = e.target.value.trim();
+  localStorage.setItem('apiBase', apiBase);
+  checkApi();
+});
+
+document.getElementById('btn-check-api').addEventListener('click', async () => {
+  const ok = await checkApi();
+  toast(ok ? '✓ Backend connected' : '✗ Backend not reachable');
+});
+
+/* ─────────────────────────────────────────────────────────────
+   Init
+──────────────────────────────────────────────────────────────*/
+(async function init() {
+  await checkApi();
+  initEQ();
+  loadFavorites();
+  loadPlaylists();
+})();
+</script>
 </body>
 </html>
