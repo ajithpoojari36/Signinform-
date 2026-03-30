@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Music Player</title>
+    <style>
+        body { font-family: Arial, sans-serif; background-color: #f0f0f0; }
+        .nav { display: flex; justify-content: center; margin-top: 20px; }
+        .nav button { margin: 0 5px; padding: 10px; border-radius: 50%; border: none; background: linear-gradient(145deg, #e6e6e6, #ffffff); box-shadow: 5px 5px 10px #d0d0d0, -5px -5px 10px #ffffff; cursor: pointer; }
+        .active { background-color: #c0c0c0; }
+        .page { display: none; }
+        .page.active { display: block; }
+        header { background: linear-gradient(145deg, #666666, #a8a8a8); padding: 20px; box-shadow: 0px 4px 10px rgba(0,0,0,0.5); }
+        footer { position: fixed; bottom: 10px; width: 100%; }
+    </style>
+</head>
+<body>
+    <header>
+        <h1 style="color:#fff; text-align:center;">Skeuomorphic Music Player</h1>
+    </header>
+    <div class="nav">
+        <button onclick="showPage('nowPlaying')">Now Playing</button>
+        <button onclick="showPage('musicLibrary')">Music Library</button>
+        <button onclick="showPage('equalizer')">Equalizer</button>
+        <button onclick="showPage('settings')">Settings</button>
+        <button onclick="showPage('playlistManager')">Playlist Manager</button>
+    </div>
+
+    <div id="nowPlaying" class="page active">
+        <h2>Now Playing</h2>
+        <p>Current track details and controls will appear here.</p>
+    </div>
+    <div id="musicLibrary" class="page">
+        <h2>Music Library</h2>
+        <p>Your music files will be listed here.</p>
+    </div>
+    <div id="equalizer" class="page">
+        <h2>Equalizer</h2>
+        <p>Equalizer controls will be displayed here.</p>
+    </div>
+    <div id="settings" class="page">
+        <h2>Settings</h2>
+        <p>Configuration options will be available here.</p>
+    </div>
+    <div id="playlistManager" class="page">
+        <h2>Playlist Manager</h2>
+        <p>Manage your playlists here.</p>
+    </div>
+
+    <footer>
+        <div class="nav">
+            <button class="active" onclick="changePage(0)"></button>
+            <button onclick="changePage(1)"></button>
+            <button onclick="changePage(2)"></button>
+            <button onclick="changePage(3)"></button>
+            <button onclick="changePage(4)"></button>
+        </div>
+    </footer>
+
+    <script>
+        let currentPage = 0;
+        const pages = document.querySelectorAll('.page');
+
+        function showPage(pageId) {
+            pages.forEach(page => {
+                page.classList.remove('active');
+            });
+            document.getElementById(pageId).classList.add('active');
+        }
+
+        function changePage(index) {
+            currentPage = index;
+            pages.forEach((page, idx) => {
+                page.classList.remove('active');
+                if (idx === currentPage) {
+                    page.classList.add('active');
+                }
+            });
+        }
+    </script>
+</body>
+</html>
