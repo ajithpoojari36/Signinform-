@@ -1,0 +1,2601 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AlgoViz - Algorithm Visualizer</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        /* ========================================
+           CSS VARIABLES & RESET
+           ======================================== */
+        :root {
+            --bg-primary: #0f172a;
+            --bg-secondary: #1e293b;
+            --bg-tertiary: #334155;
+            --bg-card: #1e293b;
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --accent-blue: #3b82f6;
+            --accent-cyan: #06b6d4;
+            --accent-purple: #8b5cf6;
+            --accent-pink: #ec4899;
+            --color-comparing: #fbbf24;
+            --color-swapping: #f97316;
+            --color-sorted: #22c55e;
+            --color-default: #6366f1;
+            --color-searching: #a855f7;
+            --grid-wall: #475569;
+            --grid-start: #22c55e;
+            --grid-end: #ef4444;
+            --grid-visited: #38bdf8;
+            --grid-path: #fbbf24;
+            --grid-current: #f472b6;
+            --border-color: #334155;
+            --shadow-lg: 0 10px 40px rgba(0, 0, 0, 0.4);
+            --shadow-glow: 0 0 20px rgba(99, 102, 241, 0.3);
+            --transition-fast: 0.15s ease;
+            --transition-normal: 0.3s ease;
+            --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+        }
+
+        *, *::before, *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        html {
+            font-size: 16px;
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: var(--font-sans);
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        /* ========================================
+           LAYOUT
+           ======================================== */
+        .app-container {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 1rem;
+        }
+
+        /* ========================================
+           HEADER
+           ======================================== */
+        .header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 1rem 1.5rem;
+            background: var(--bg-secondary);
+            border-radius: 16px;
+            margin-bottom: 1rem;
+            border: 1px solid var(--border-color);
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-size: 1.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+            -webkit-text-fill-color: white;
+        }
+
+        /* ========================================
+           CATEGORY TABS
+           ======================================== */
+        .category-tabs {
+            display: flex;
+            gap: 0.5rem;
+            background: var(--bg-primary);
+            padding: 0.25rem;
+            border-radius: 12px;
+        }
+
+        .category-tab {
+            padding: 0.625rem 1.25rem;
+            border: none;
+            background: transparent;
+            color: var(--text-secondary);
+            font-family: var(--font-sans);
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            border-radius: 8px;
+            transition: all var(--transition-fast);
+        }
+
+        .category-tab:hover {
+            color: var(--text-primary);
+            background: var(--bg-tertiary);
+        }
+
+        .category-tab.active {
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+            color: white;
+            box-shadow: var(--shadow-glow);
+        }
+
+        /* ========================================
+           MAIN CONTENT AREA
+           ======================================== */
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 320px;
+            gap: 1rem;
+            flex: 1;
+            min-height: 0;
+        }
+
+        @media (max-width: 1024px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* ========================================
+           VISUALIZATION STAGE
+           ======================================== */
+        .visualization-container {
+            background: var(--bg-secondary);
+            border-radius: 16px;
+            border: 1px solid var(--border-color);
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            min-height: 400px;
+        }
+
+        .visualization-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+        }
+
+        .algorithm-selector {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .algo-btn {
+            padding: 0.5rem 1rem;
+            border: 1px solid var(--border-color);
+            background: var(--bg-tertiary);
+            color: var(--text-secondary);
+            font-family: var(--font-sans);
+            font-size: 0.8125rem;
+            font-weight: 500;
+            cursor: pointer;
+            border-radius: 8px;
+            transition: all var(--transition-fast);
+        }
+
+        .algo-btn:hover {
+            border-color: var(--accent-blue);
+            color: var(--text-primary);
+        }
+
+        .algo-btn.active {
+            background: var(--accent-blue);
+            border-color: var(--accent-blue);
+            color: white;
+        }
+
+        .visualization-stage {
+            flex: 1;
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            gap: 2px;
+            padding: 1rem;
+            background: var(--bg-primary);
+            border-radius: 12px;
+            min-height: 300px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Sorting Bars */
+        .bar {
+            flex: 1;
+            max-width: 60px;
+            min-width: 4px;
+            background: linear-gradient(180deg, var(--color-default), #4338ca);
+            border-radius: 4px 4px 0 0;
+            transition: height 0.1s ease, background 0.15s ease, transform 0.15s ease;
+            position: relative;
+        }
+
+        .bar::after {
+            content: attr(data-value);
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 0.625rem;
+            color: var(--text-muted);
+            padding-bottom: 4px;
+            opacity: 0;
+            transition: opacity var(--transition-fast);
+        }
+
+        .visualization-stage:hover .bar::after {
+            opacity: 1;
+        }
+
+        .bar.comparing {
+            background: linear-gradient(180deg, var(--color-comparing), #d97706);
+            transform: scaleY(1.02);
+            box-shadow: 0 0 15px rgba(251, 191, 36, 0.5);
+        }
+
+        .bar.swapping {
+            background: linear-gradient(180deg, var(--color-swapping), #ea580c);
+            transform: scaleY(1.05);
+            box-shadow: 0 0 20px rgba(249, 115, 22, 0.6);
+        }
+
+        .bar.sorted {
+            background: linear-gradient(180deg, var(--color-sorted), #16a34a);
+            box-shadow: 0 0 10px rgba(34, 197, 94, 0.4);
+        }
+
+        .bar.searching {
+            background: linear-gradient(180deg, var(--color-searching), #7c3aed);
+            box-shadow: 0 0 15px rgba(168, 85, 247, 0.5);
+        }
+
+        .bar.found {
+            background: linear-gradient(180deg, var(--color-sorted), #16a34a);
+            transform: scaleY(1.1);
+            box-shadow: 0 0 25px rgba(34, 197, 94, 0.7);
+            animation: pulse 0.5s ease infinite alternate;
+        }
+
+        .bar.not-found {
+            background: linear-gradient(180deg, #ef4444, #dc2626);
+            box-shadow: 0 0 15px rgba(239, 68, 68, 0.5);
+        }
+
+        @keyframes pulse {
+            from { transform: scaleY(1.1); }
+            to { transform: scaleY(1.15); }
+        }
+
+        /* Pathfinding Grid */
+        .pathfinding-grid {
+            display: none;
+            grid-template-columns: repeat(20, 1fr);
+            gap: 1px;
+            width: 100%;
+            max-width: 600px;
+            aspect-ratio: 1;
+            background: var(--bg-tertiary);
+            border-radius: 8px;
+            padding: 4px;
+            margin: auto;
+        }
+
+        .pathfinding-grid.active {
+            display: grid;
+        }
+
+        .grid-cell {
+            background: var(--bg-secondary);
+            border-radius: 2px;
+            cursor: pointer;
+            transition: all 0.1s ease;
+            position: relative;
+        }
+
+        .grid-cell:hover {
+            background: var(--bg-tertiary);
+        }
+
+        .grid-cell.wall {
+            background: var(--grid-wall);
+        }
+
+        .grid-cell.start {
+            background: var(--grid-start);
+            box-shadow: 0 0 10px rgba(34, 197, 94, 0.6);
+        }
+
+        .grid-cell.end {
+            background: var(--grid-end);
+            box-shadow: 0 0 10px rgba(239, 68, 68, 0.6);
+        }
+
+        .grid-cell.visited {
+            background: var(--grid-visited);
+            animation: visitedPulse 0.3s ease;
+        }
+
+        .grid-cell.path {
+            background: var(--grid-path);
+            box-shadow: 0 0 8px rgba(251, 191, 36, 0.6);
+            animation: pathPulse 0.3s ease;
+        }
+
+        .grid-cell.current {
+            background: var(--grid-current);
+            box-shadow: 0 0 12px rgba(244, 114, 182, 0.7);
+        }
+
+        @keyframes visitedPulse {
+            0% { transform: scale(0); opacity: 0; }
+            50% { transform: scale(1.2); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        @keyframes pathPulse {
+            0% { transform: scale(0.8); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+
+        .bars-container {
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            gap: 2px;
+            width: 100%;
+            height: 100%;
+        }
+
+        .bars-container.hidden {
+            display: none;
+        }
+
+        /* ========================================
+           INFO PANEL (Sidebar)
+           ======================================== */
+        .info-panel {
+            background: var(--bg-secondary);
+            border-radius: 16px;
+            border: 1px solid var(--border-color);
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1.25rem;
+            height: fit-content;
+            max-height: calc(100vh - 200px);
+            overflow-y: auto;
+        }
+
+        .info-section {
+            background: var(--bg-primary);
+            border-radius: 12px;
+            padding: 1rem;
+        }
+
+        .info-title {
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-muted);
+            margin-bottom: 0.75rem;
+        }
+
+        .algorithm-name {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 0.5rem;
+        }
+
+        .algorithm-description {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+
+        /* Complexity Badges */
+        .complexity-badges {
+            display: flex;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+        }
+
+        .badge {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 0.75rem 1rem;
+            background: var(--bg-secondary);
+            border-radius: 10px;
+            flex: 1;
+            min-width: 100px;
+        }
+
+        .badge-label {
+            font-size: 0.6875rem;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+            color: var(--text-muted);
+            margin-bottom: 0.25rem;
+        }
+
+        .badge-value {
+            font-family: var(--font-mono);
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--accent-cyan);
+        }
+
+        /* Stats Counters */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.75rem;
+        }
+
+        .stat-item {
+            background: var(--bg-secondary);
+            padding: 0.75rem;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-family: var(--font-mono);
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--accent-purple);
+        }
+
+        .stat-label {
+            font-size: 0.6875rem;
+            font-weight: 500;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            margin-top: 0.25rem;
+        }
+
+        /* Pseudocode Panel */
+        .pseudocode {
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+            line-height: 1.8;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .pseudocode-line {
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            transition: all var(--transition-fast);
+            white-space: pre;
+        }
+
+        .pseudocode-line.active {
+            background: rgba(251, 191, 36, 0.2);
+            color: var(--color-comparing);
+            font-weight: 500;
+        }
+
+        /* ========================================
+           CONTROLS PANEL
+           ======================================== */
+        .controls-panel {
+            background: var(--bg-secondary);
+            border-radius: 16px;
+            border: 1px solid var(--border-color);
+            padding: 1.25rem 1.5rem;
+            margin-top: 1rem;
+        }
+
+        .controls-row {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .controls-row + .controls-row {
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid var(--border-color);
+        }
+
+        /* Playback Buttons */
+        .playback-controls {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .control-btn {
+            width: 44px;
+            height: 44px;
+            border: none;
+            border-radius: 12px;
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            font-size: 1.125rem;
+            cursor: pointer;
+            transition: all var(--transition-fast);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .control-btn:hover {
+            background: var(--bg-primary);
+            transform: translateY(-2px);
+        }
+
+        .control-btn:active {
+            transform: translateY(0);
+        }
+
+        .control-btn.primary {
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+            width: 56px;
+        }
+
+        .control-btn.primary:hover {
+            box-shadow: var(--shadow-glow);
+        }
+
+        .control-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Sliders */
+        .slider-group {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .slider-label {
+            font-size: 0.8125rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+            white-space: nowrap;
+        }
+
+        .slider {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 120px;
+            height: 6px;
+            background: var(--bg-tertiary);
+            border-radius: 3px;
+            outline: none;
+            cursor: pointer;
+        }
+
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-blue));
+            border-radius: 50%;
+            cursor: pointer;
+            transition: transform var(--transition-fast);
+        }
+
+        .slider::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+        }
+
+        .slider::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-blue));
+            border-radius: 50%;
+            cursor: pointer;
+            border: none;
+        }
+
+        .slider-value {
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+            color: var(--accent-cyan);
+            min-width: 40px;
+        }
+
+        /* Custom Input */
+        .custom-input-group {
+            display: flex;
+            gap: 0.5rem;
+            flex: 1;
+            max-width: 400px;
+        }
+
+        .custom-input {
+            flex: 1;
+            padding: 0.625rem 1rem;
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            font-family: var(--font-mono);
+            font-size: 0.875rem;
+            outline: none;
+            transition: border-color var(--transition-fast);
+        }
+
+        .custom-input:focus {
+            border-color: var(--accent-blue);
+        }
+
+        .custom-input::placeholder {
+            color: var(--text-muted);
+        }
+
+        .input-btn {
+            padding: 0.625rem 1rem;
+            border: none;
+            border-radius: 10px;
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            font-family: var(--font-sans);
+            font-size: 0.8125rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all var(--transition-fast);
+            white-space: nowrap;
+        }
+
+        .input-btn:hover {
+            background: var(--accent-blue);
+        }
+
+        .input-btn.accent {
+            background: linear-gradient(135deg, var(--accent-purple), var(--accent-pink));
+        }
+
+        /* Search Input for Searching Algorithm */
+        .search-input-group {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .search-input-group label {
+            font-size: 0.8125rem;
+            color: var(--text-secondary);
+        }
+
+        .search-target-input {
+            width: 80px;
+            padding: 0.5rem 0.75rem;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            font-family: var(--font-mono);
+            font-size: 0.875rem;
+            outline: none;
+        }
+
+        .search-target-input:focus {
+            border-color: var(--accent-blue);
+        }
+
+        /* Grid Controls */
+        .grid-controls {
+            display: none;
+            gap: 0.5rem;
+        }
+
+        .grid-controls.active {
+            display: flex;
+        }
+
+        .grid-mode-btn {
+            padding: 0.5rem 1rem;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            background: var(--bg-tertiary);
+            color: var(--text-secondary);
+            font-family: var(--font-sans);
+            font-size: 0.8125rem;
+            cursor: pointer;
+            transition: all var(--transition-fast);
+        }
+
+        .grid-mode-btn:hover {
+            border-color: var(--accent-blue);
+        }
+
+        .grid-mode-btn.active {
+            background: var(--accent-blue);
+            border-color: var(--accent-blue);
+            color: white;
+        }
+
+        /* ========================================
+           COMPLETION ANIMATION
+           ======================================== */
+        .celebration-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1000;
+        }
+
+        .confetti {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            border-radius: 2px;
+            animation: confettiFall 3s ease-out forwards;
+        }
+
+        @keyframes confettiFall {
+            0% {
+                transform: translateY(-100vh) rotate(0deg);
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(100vh) rotate(720deg);
+                opacity: 0;
+            }
+        }
+
+        /* ========================================
+           STATUS MESSAGE
+           ======================================== */
+        .status-message {
+            position: fixed;
+            bottom: 2rem;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            padding: 1rem 2rem;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            font-weight: 500;
+            box-shadow: var(--shadow-lg);
+            opacity: 0;
+            transition: all 0.3s ease;
+            z-index: 100;
+        }
+
+        .status-message.visible {
+            transform: translateX(-50%) translateY(0);
+            opacity: 1;
+        }
+
+        .status-message.success {
+            border-color: var(--color-sorted);
+            color: var(--color-sorted);
+        }
+
+        .status-message.error {
+            border-color: #ef4444;
+            color: #ef4444;
+        }
+
+        .status-message.info {
+            border-color: var(--accent-cyan);
+            color: var(--accent-cyan);
+        }
+
+        /* ========================================
+           SCROLLBAR
+           ======================================== */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--bg-primary);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--bg-tertiary);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--text-muted);
+        }
+
+        /* ========================================
+           RESPONSIVE
+           ======================================== */
+        @media (max-width: 768px) {
+            .app-container {
+                padding: 0.5rem;
+            }
+
+            .header {
+                padding: 1rem;
+            }
+
+            .logo {
+                font-size: 1.25rem;
+            }
+
+            .category-tab {
+                padding: 0.5rem 0.875rem;
+                font-size: 0.8125rem;
+            }
+
+            .visualization-container {
+                padding: 1rem;
+            }
+
+            .info-panel {
+                max-height: none;
+            }
+
+            .controls-panel {
+                padding: 1rem;
+            }
+
+            .slider {
+                width: 80px;
+            }
+
+            .custom-input-group {
+                max-width: none;
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="header">
+            <div class="logo">
+                <div class="logo-icon">🧠</div>
+                <span>AlgoViz</span>
+            </div>
+            <div class="category-tabs">
+                <button class="category-tab active" data-category="sorting">Sorting</button>
+                <button class="category-tab" data-category="searching">Searching</button>
+                <button class="category-tab" data-category="pathfinding">Pathfinding</button>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Visualization Area -->
+            <div class="visualization-container">
+                <div class="visualization-header">
+                    <div class="algorithm-selector" id="algorithmSelector">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+                <div class="visualization-stage" id="visualizationStage">
+                    <div class="bars-container" id="barsContainer">
+                        <!-- Bars populated by JS -->
+                    </div>
+                    <div class="pathfinding-grid" id="pathfindingGrid">
+                        <!-- Grid cells populated by JS -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Info Panel -->
+            <aside class="info-panel">
+                <div class="info-section">
+                    <div class="info-title">Algorithm</div>
+                    <div class="algorithm-name" id="algorithmName">Bubble Sort</div>
+                    <div class="algorithm-description" id="algorithmDescription">
+                        Repeatedly steps through the list, compares adjacent elements, and swaps them if they are in the wrong order.
+                    </div>
+                </div>
+
+                <div class="info-section">
+                    <div class="info-title">Complexity</div>
+                    <div class="complexity-badges">
+                        <div class="badge">
+                            <span class="badge-label">Time</span>
+                            <span class="badge-value" id="timeComplexity">O(n²)</span>
+                        </div>
+                        <div class="badge">
+                            <span class="badge-label">Space</span>
+                            <span class="badge-value" id="spaceComplexity">O(1)</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="info-section">
+                    <div class="info-title">Statistics</div>
+                    <div class="stats-grid">
+                        <div class="stat-item">
+                            <div class="stat-value" id="comparisons">0</div>
+                            <div class="stat-label">Comparisons</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value" id="swaps">0</div>
+                            <div class="stat-label">Swaps</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="info-section">
+                    <div class="info-title">Pseudocode</div>
+                    <div class="pseudocode" id="pseudocode">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+            </aside>
+        </main>
+
+        <!-- Controls Panel -->
+        <div class="controls-panel">
+            <div class="controls-row">
+                <div class="playback-controls">
+                    <button class="control-btn" id="btnStepBack" title="Step Back">⏮</button>
+                    <button class="control-btn primary" id="btnPlayPause" title="Play/Pause">▶</button>
+                    <button class="control-btn" id="btnStepForward" title="Step Forward">⏭</button>
+                    <button class="control-btn" id="btnReset" title="Reset">↺</button>
+                </div>
+
+                <div class="slider-group">
+                    <span class="slider-label">Speed:</span>
+                    <input type="range" class="slider" id="speedSlider" min="1" max="100" value="50">
+                    <span class="slider-value" id="speedValue">50ms</span>
+                </div>
+
+                <div class="slider-group" id="arraySizeGroup">
+                    <span class="slider-label">Size:</span>
+                    <input type="range" class="slider" id="sizeSlider" min="5" max="100" value="30">
+                    <span class="slider-value" id="sizeValue">30</span>
+                </div>
+
+                <div class="search-input-group" id="searchInputGroup" style="display: none;">
+                    <label>Target:</label>
+                    <input type="number" class="search-target-input" id="searchTarget" placeholder="42">
+                </div>
+
+                <div class="grid-controls" id="gridControls">
+                    <button class="grid-mode-btn active" data-mode="wall">🧱 Walls</button>
+                    <button class="grid-mode-btn" data-mode="start">🟢 Start</button>
+                    <button class="grid-mode-btn" data-mode="end">🔴 End</button>
+                    <button class="grid-mode-btn" data-mode="clear">🧹 Clear</button>
+                </div>
+            </div>
+
+            <div class="controls-row">
+                <div class="custom-input-group" id="customInputGroup">
+                    <input type="text" class="custom-input" id="customInput" placeholder="Enter numbers: 5, 3, 8, 1, 9...">
+                    <button class="input-btn" id="btnApply">Apply</button>
+                    <button class="input-btn accent" id="btnRandom">Random</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Status Message -->
+    <div class="status-message" id="statusMessage"></div>
+
+    <!-- Celebration Overlay -->
+    <div class="celebration-overlay" id="celebrationOverlay"></div>
+
+    <script>
+        /**
+         * =====================================================
+         * AlgoViz - Algorithm Visualizer
+         * A production-quality, single-file web application
+         * =====================================================
+         * 
+         * Architecture:
+         * - App: Main controller managing state and UI
+         * - Algorithms: Individual algorithm implementations
+         * - Visualizer: Rendering logic for bars and grid
+         * - HistoryManager: Manages state snapshots for time travel
+         */
+
+        // =====================================================
+        // UTILITY FUNCTIONS
+        // =====================================================
+
+        /**
+         * Async sleep function for throttling algorithm execution
+         * @param {number} ms - Milliseconds to wait
+         * @returns {Promise} Resolves after the specified delay
+         */
+        const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+        /**
+         * Generate random integer between min and max (inclusive)
+         */
+        const randomInt = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
+
+        /**
+         * Generate random array of specified size
+         */
+        const generateRandomArray = (size, min = 5, max = 100) => {
+            return Array.from({ length: size }, () => randomInt(min, max));
+        };
+
+        /**
+         * Deep clone an array or object
+         */
+        const deepClone = (obj) => JSON.parse(JSON.stringify(obj));
+
+        // =====================================================
+        // ALGORITHM DEFINITIONS
+        // =====================================================
+
+        const ALGORITHMS = {
+            sorting: {
+                bubble: {
+                    name: 'Bubble Sort',
+                    description: 'Repeatedly steps through the list, compares adjacent elements, and swaps them if they are in the wrong order. Simple but inefficient for large datasets.',
+                    timeComplexity: 'O(n²)',
+                    spaceComplexity: 'O(1)',
+                    pseudocode: [
+                        'for i = 0 to n-1:',
+                        '  for j = 0 to n-i-2:',
+                        '    if arr[j] > arr[j+1]:',
+                        '      swap(arr[j], arr[j+1])'
+                    ]
+                },
+                selection: {
+                    name: 'Selection Sort',
+                    description: 'Divides the input into a sorted and unsorted region. Repeatedly selects the smallest element from the unsorted region and moves it to the sorted region.',
+                    timeComplexity: 'O(n²)',
+                    spaceComplexity: 'O(1)',
+                    pseudocode: [
+                        'for i = 0 to n-1:',
+                        '  minIdx = i',
+                        '  for j = i+1 to n:',
+                        '    if arr[j] < arr[minIdx]:',
+                        '      minIdx = j',
+                        '  swap(arr[i], arr[minIdx])'
+                    ]
+                },
+                insertion: {
+                    name: 'Insertion Sort',
+                    description: 'Builds the final sorted array one item at a time. Efficient for small datasets or nearly sorted arrays.',
+                    timeComplexity: 'O(n²)',
+                    spaceComplexity: 'O(1)',
+                    pseudocode: [
+                        'for i = 1 to n:',
+                        '  key = arr[i]',
+                        '  j = i - 1',
+                        '  while j >= 0 and arr[j] > key:',
+                        '    arr[j+1] = arr[j]',
+                        '    j = j - 1',
+                        '  arr[j+1] = key'
+                    ]
+                },
+                merge: {
+                    name: 'Merge Sort',
+                    description: 'Divide-and-conquer algorithm that divides the array into halves, sorts them, and merges them back. Guaranteed O(n log n) performance.',
+                    timeComplexity: 'O(n log n)',
+                    spaceComplexity: 'O(n)',
+                    pseudocode: [
+                        'mergeSort(arr, l, r):',
+                        '  if l < r:',
+                        '    m = (l+r)/2',
+                        '    mergeSort(arr, l, m)',
+                        '    mergeSort(arr, m+1, r)',
+                        '    merge(arr, l, m, r)'
+                    ]
+                },
+                quick: {
+                    name: 'Quick Sort',
+                    description: 'Divide-and-conquer algorithm that picks a pivot element and partitions the array around it. Very efficient in practice.',
+                    timeComplexity: 'O(n log n)',
+                    spaceComplexity: 'O(log n)',
+                    pseudocode: [
+                        'quickSort(arr, low, high):',
+                        '  if low < high:',
+                        '    pi = partition(arr, low, high)',
+                        '    quickSort(arr, low, pi-1)',
+                        '    quickSort(arr, pi+1, high)'
+                    ]
+                }
+            },
+            searching: {
+                linear: {
+                    name: 'Linear Search',
+                    description: 'Sequentially checks each element until a match is found or the whole list has been searched. Works on unsorted arrays.',
+                    timeComplexity: 'O(n)',
+                    spaceComplexity: 'O(1)',
+                    pseudocode: [
+                        'linearSearch(arr, target):',
+                        '  for i = 0 to n-1:',
+                        '    if arr[i] == target:',
+                        '      return i',
+                        '  return -1'
+                    ]
+                },
+                binary: {
+                    name: 'Binary Search',
+                    description: 'Efficiently finds a target value in a sorted array by repeatedly dividing the search interval in half.',
+                    timeComplexity: 'O(log n)',
+                    spaceComplexity: 'O(1)',
+                    pseudocode: [
+                        'binarySearch(arr, target):',
+                        '  low = 0, high = n-1',
+                        '  while low <= high:',
+                        '    mid = (low+high)/2',
+                        '    if arr[mid] == target: return mid',
+                        '    if arr[mid] < target: low = mid+1',
+                        '    else: high = mid-1',
+                        '  return -1'
+                    ]
+                }
+            },
+            pathfinding: {
+                bfs: {
+                    name: 'BFS (Breadth-First)',
+                    description: 'Explores all neighbors at the current depth before moving to nodes at the next depth level. Guarantees shortest path in unweighted graphs.',
+                    timeComplexity: 'O(V + E)',
+                    spaceComplexity: 'O(V)',
+                    pseudocode: [
+                        'BFS(grid, start, end):',
+                        '  queue = [start]',
+                        '  visited = {}',
+                        '  while queue not empty:',
+                        '    node = queue.dequeue()',
+                        '    if node == end: return path',
+                        '    for each neighbor of node:',
+                        '      if not visited:',
+                        '        visited.add(neighbor)',
+                        '        queue.enqueue(neighbor)'
+                    ]
+                },
+                dfs: {
+                    name: 'DFS (Depth-First)',
+                    description: 'Explores as far as possible along each branch before backtracking. Uses less memory than BFS but may not find shortest path.',
+                    timeComplexity: 'O(V + E)',
+                    spaceComplexity: 'O(V)',
+                    pseudocode: [
+                        'DFS(grid, node, end):',
+                        '  visited.add(node)',
+                        '  if node == end: return true',
+                        '  for each neighbor of node:',
+                        '    if not visited:',
+                        '      if DFS(grid, neighbor, end):',
+                        '        return true',
+                        '  return false'
+                    ]
+                }
+            }
+        };
+
+        // =====================================================
+        // HISTORY MANAGER - For time travel / step back
+        // =====================================================
+
+        class HistoryManager {
+            constructor() {
+                this.history = [];
+                this.currentIndex = -1;
+            }
+
+            /**
+             * Save a state snapshot
+             * @param {Object} state - The state to save
+             */
+            push(state) {
+                // Remove any future states if we're not at the end
+                this.history = this.history.slice(0, this.currentIndex + 1);
+                this.history.push(deepClone(state));
+                this.currentIndex = this.history.length - 1;
+            }
+
+            /**
+             * Go back one step
+             * @returns {Object|null} Previous state or null if at beginning
+             */
+            back() {
+                if (this.currentIndex > 0) {
+                    this.currentIndex--;
+                    return deepClone(this.history[this.currentIndex]);
+                }
+                return null;
+            }
+
+            /**
+             * Go forward one step
+             * @returns {Object|null} Next state or null if at end
+             */
+            forward() {
+                if (this.currentIndex < this.history.length - 1) {
+                    this.currentIndex++;
+                    return deepClone(this.history[this.currentIndex]);
+                }
+                return null;
+            }
+
+            /**
+             * Get current state
+             */
+            current() {
+                return this.currentIndex >= 0 ? deepClone(this.history[this.currentIndex]) : null;
+            }
+
+            /**
+             * Reset history
+             */
+            reset() {
+                this.history = [];
+                this.currentIndex = -1;
+            }
+
+            /**
+             * Check if can go back
+             */
+            canGoBack() {
+                return this.currentIndex > 0;
+            }
+
+            /**
+             * Check if can go forward
+             */
+            canGoForward() {
+                return this.currentIndex < this.history.length - 1;
+            }
+        }
+
+        // =====================================================
+        // MAIN APPLICATION
+        // =====================================================
+
+        const App = (() => {
+            // =====================================================
+            // STATE
+            // =====================================================
+            const state = {
+                category: 'sorting',
+                algorithm: 'bubble',
+                array: [],
+                originalArray: [],
+                isRunning: false,
+                isPaused: false,
+                speed: 50,
+                size: 30,
+                searchTarget: null,
+                comparisons: 0,
+                swaps: 0,
+                currentLine: -1,
+                highlightedIndices: [],
+                sortedIndices: [],
+                // Pathfinding state
+                grid: [],
+                gridSize: 20,
+                startPos: { row: 5, col: 3 },
+                endPos: { row: 14, col: 16 },
+                gridMode: 'wall', // wall, start, end, clear
+                visitedCells: [],
+                pathCells: [],
+                currentCell: null
+            };
+
+            // History manager for step back functionality
+            const history = new HistoryManager();
+
+            // Abort controller for stopping running algorithms
+            let abortController = null;
+
+            // =====================================================
+            // DOM ELEMENTS
+            // =====================================================
+            const elements = {
+                categoryTabs: document.querySelectorAll('.category-tab'),
+                algorithmSelector: document.getElementById('algorithmSelector'),
+                barsContainer: document.getElementById('barsContainer'),
+                pathfindingGrid: document.getElementById('pathfindingGrid'),
+                algorithmName: document.getElementById('algorithmName'),
+                algorithmDescription: document.getElementById('algorithmDescription'),
+                timeComplexity: document.getElementById('timeComplexity'),
+                spaceComplexity: document.getElementById('spaceComplexity'),
+                comparisons: document.getElementById('comparisons'),
+                swaps: document.getElementById('swaps'),
+                pseudocode: document.getElementById('pseudocode'),
+                btnPlayPause: document.getElementById('btnPlayPause'),
+                btnStepBack: document.getElementById('btnStepBack'),
+                btnStepForward: document.getElementById('btnStepForward'),
+                btnReset: document.getElementById('btnReset'),
+                speedSlider: document.getElementById('speedSlider'),
+                speedValue: document.getElementById('speedValue'),
+                sizeSlider: document.getElementById('sizeSlider'),
+                sizeValue: document.getElementById('sizeValue'),
+                arraySizeGroup: document.getElementById('arraySizeGroup'),
+                searchInputGroup: document.getElementById('searchInputGroup'),
+                searchTarget: document.getElementById('searchTarget'),
+                customInput: document.getElementById('customInput'),
+                btnApply: document.getElementById('btnApply'),
+                btnRandom: document.getElementById('btnRandom'),
+                gridControls: document.getElementById('gridControls'),
+                customInputGroup: document.getElementById('customInputGroup'),
+                statusMessage: document.getElementById('statusMessage'),
+                celebrationOverlay: document.getElementById('celebrationOverlay')
+            };
+
+            // =====================================================
+            // INITIALIZATION
+            // =====================================================
+
+            function init() {
+                setupEventListeners();
+                updateAlgorithmSelector();
+                generateNewArray();
+                initializeGrid();
+                updateUI();
+            }
+
+            function setupEventListeners() {
+                // Category tabs
+                elements.categoryTabs.forEach(tab => {
+                    tab.addEventListener('click', () => switchCategory(tab.dataset.category));
+                });
+
+                // Playback controls
+                elements.btnPlayPause.addEventListener('click', togglePlayPause);
+                elements.btnStepBack.addEventListener('click', stepBack);
+                elements.btnStepForward.addEventListener('click', stepForward);
+                elements.btnReset.addEventListener('click', reset);
+
+                // Sliders
+                elements.speedSlider.addEventListener('input', (e) => {
+                    state.speed = 101 - parseInt(e.target.value);
+                    elements.speedValue.textContent = `${state.speed}ms`;
+                });
+
+                elements.sizeSlider.addEventListener('input', (e) => {
+                    state.size = parseInt(e.target.value);
+                    elements.sizeValue.textContent = state.size;
+                    if (!state.isRunning) {
+                        generateNewArray();
+                    }
+                });
+
+                // Custom input
+                elements.btnApply.addEventListener('click', applyCustomInput);
+                elements.btnRandom.addEventListener('click', generateNewArray);
+                elements.customInput.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') applyCustomInput();
+                });
+
+                // Search target
+                elements.searchTarget.addEventListener('change', (e) => {
+                    state.searchTarget = parseInt(e.target.value) || null;
+                });
+
+                // Grid mode buttons
+                document.querySelectorAll('.grid-mode-btn').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        document.querySelectorAll('.grid-mode-btn').forEach(b => b.classList.remove('active'));
+                        btn.classList.add('active');
+                        state.gridMode = btn.dataset.mode;
+                        if (state.gridMode === 'clear') {
+                            clearGridPath();
+                        }
+                    });
+                });
+            }
+
+            // =====================================================
+            // CATEGORY & ALGORITHM SWITCHING
+            // =====================================================
+
+            function switchCategory(category) {
+                if (state.isRunning) {
+                    stopAlgorithm();
+                }
+
+                state.category = category;
+                
+                // Update tab styles
+                elements.categoryTabs.forEach(tab => {
+                    tab.classList.toggle('active', tab.dataset.category === category);
+                });
+
+                // Show/hide relevant controls
+                const isPathfinding = category === 'pathfinding';
+                const isSearching = category === 'searching';
+                
+                elements.barsContainer.classList.toggle('hidden', isPathfinding);
+                elements.pathfindingGrid.classList.toggle('active', isPathfinding);
+                elements.gridControls.classList.toggle('active', isPathfinding);
+                elements.arraySizeGroup.style.display = isPathfinding ? 'none' : 'flex';
+                elements.customInputGroup.style.display = isPathfinding ? 'none' : 'flex';
+                elements.searchInputGroup.style.display = isSearching ? 'flex' : 'none';
+
+                // Update algorithm selector and select first algorithm
+                updateAlgorithmSelector();
+                const algorithms = Object.keys(ALGORITHMS[category]);
+                switchAlgorithm(algorithms[0]);
+
+                reset();
+            }
+
+            function updateAlgorithmSelector() {
+                const algorithms = ALGORITHMS[state.category];
+                elements.algorithmSelector.innerHTML = '';
+
+                Object.entries(algorithms).forEach(([key, algo]) => {
+                    const btn = document.createElement('button');
+                    btn.className = `algo-btn ${key === state.algorithm ? 'active' : ''}`;
+                    btn.textContent = algo.name;
+                    btn.addEventListener('click', () => switchAlgorithm(key));
+                    elements.algorithmSelector.appendChild(btn);
+                });
+            }
+
+            function switchAlgorithm(algorithm) {
+                if (state.isRunning) {
+                    stopAlgorithm();
+                }
+
+                state.algorithm = algorithm;
+
+                // Update button styles
+                document.querySelectorAll('.algo-btn').forEach(btn => {
+                    btn.classList.toggle('active', btn.textContent === ALGORITHMS[state.category][algorithm].name);
+                });
+
+                // For binary search, ensure array is sorted
+                if (state.category === 'searching' && algorithm === 'binary') {
+                    state.array = [...state.array].sort((a, b) => a - b);
+                    state.originalArray = [...state.array];
+                }
+
+                updateUI();
+                reset();
+            }
+
+            // =====================================================
+            // ARRAY MANAGEMENT
+            // =====================================================
+
+            function generateNewArray() {
+                if (state.isRunning) return;
+
+                state.array = generateRandomArray(state.size);
+                
+                // For binary search, sort the array
+                if (state.category === 'searching' && state.algorithm === 'binary') {
+                    state.array.sort((a, b) => a - b);
+                }
+                
+                state.originalArray = [...state.array];
+                resetStats();
+                renderBars();
+            }
+
+            function applyCustomInput() {
+                if (state.isRunning) return;
+
+                const input = elements.customInput.value.trim();
+                if (!input) {
+                    showStatus('Please enter some numbers', 'error');
+                    return;
+                }
+
+                const numbers = input.split(/[,\s]+/).map(n => parseInt(n.trim())).filter(n => !isNaN(n));
+                
+                if (numbers.length === 0) {
+                    showStatus('Invalid input. Use comma-separated numbers', 'error');
+                    return;
+                }
+
+                if (numbers.length > 100) {
+                    showStatus('Maximum 100 elements allowed', 'error');
+                    return;
+                }
+
+                state.array = numbers;
+                
+                // For binary search, sort the array
+                if (state.category === 'searching' && state.algorithm === 'binary') {
+                    state.array.sort((a, b) => a - b);
+                }
+                
+                state.originalArray = [...state.array];
+                state.size = numbers.length;
+                elements.sizeSlider.value = state.size;
+                elements.sizeValue.textContent = state.size;
+                
+                resetStats();
+                renderBars();
+                showStatus(`Applied ${numbers.length} elements`, 'success');
+            }
+
+            // =====================================================
+            // GRID MANAGEMENT (Pathfinding)
+            // =====================================================
+
+            function initializeGrid() {
+                state.grid = [];
+                elements.pathfindingGrid.innerHTML = '';
+
+                for (let row = 0; row < state.gridSize; row++) {
+                    state.grid[row] = [];
+                    for (let col = 0; col < state.gridSize; col++) {
+                        state.grid[row][col] = 0; // 0 = empty, 1 = wall
+                        
+                        const cell = document.createElement('div');
+                        cell.className = 'grid-cell';
+                        cell.dataset.row = row;
+                        cell.dataset.col = col;
+                        
+                        cell.addEventListener('click', () => handleCellClick(row, col));
+                        cell.addEventListener('mouseenter', (e) => {
+                            if (e.buttons === 1) handleCellClick(row, col);
+                        });
+                        
+                        elements.pathfindingGrid.appendChild(cell);
+                    }
+                }
+
+                updateGridDisplay();
+            }
+
+            function handleCellClick(row, col) {
+                if (state.isRunning) return;
+
+                const isStart = row === state.startPos.row && col === state.startPos.col;
+                const isEnd = row === state.endPos.row && col === state.endPos.col;
+
+                switch (state.gridMode) {
+                    case 'wall':
+                        if (!isStart && !isEnd) {
+                            state.grid[row][col] = state.grid[row][col] === 1 ? 0 : 1;
+                        }
+                        break;
+                    case 'start':
+                        if (!isEnd && state.grid[row][col] !== 1) {
+                            state.startPos = { row, col };
+                        }
+                        break;
+                    case 'end':
+                        if (!isStart && state.grid[row][col] !== 1) {
+                            state.endPos = { row, col };
+                        }
+                        break;
+                }
+
+                clearGridPath();
+                updateGridDisplay();
+            }
+
+            function clearGridPath() {
+                state.visitedCells = [];
+                state.pathCells = [];
+                state.currentCell = null;
+                updateGridDisplay();
+            }
+
+            function updateGridDisplay() {
+                const cells = elements.pathfindingGrid.querySelectorAll('.grid-cell');
+                
+                cells.forEach(cell => {
+                    const row = parseInt(cell.dataset.row);
+                    const col = parseInt(cell.dataset.col);
+                    
+                    cell.className = 'grid-cell';
+                    
+                    if (row === state.startPos.row && col === state.startPos.col) {
+                        cell.classList.add('start');
+                    } else if (row === state.endPos.row && col === state.endPos.col) {
+                        cell.classList.add('end');
+                    } else if (state.grid[row][col] === 1) {
+                        cell.classList.add('wall');
+                    } else if (state.pathCells.some(c => c.row === row && c.col === col)) {
+                        cell.classList.add('path');
+                    } else if (state.currentCell && state.currentCell.row === row && state.currentCell.col === col) {
+                        cell.classList.add('current');
+                    } else if (state.visitedCells.some(c => c.row === row && c.col === col)) {
+                        cell.classList.add('visited');
+                    }
+                });
+            }
+
+            // =====================================================
+            // VISUALIZATION RENDERING
+            // =====================================================
+
+            function renderBars() {
+                const maxValue = Math.max(...state.array);
+                elements.barsContainer.innerHTML = '';
+
+                state.array.forEach((value, index) => {
+                    const bar = document.createElement('div');
+                    bar.className = 'bar';
+                    bar.style.height = `${(value / maxValue) * 100}%`;
+                    bar.dataset.value = value;
+                    
+                    // Apply states
+                    if (state.sortedIndices.includes(index)) {
+                        bar.classList.add('sorted');
+                    }
+                    if (state.highlightedIndices.includes(index)) {
+                        bar.classList.add('comparing');
+                    }
+                    
+                    elements.barsContainer.appendChild(bar);
+                });
+            }
+
+            function highlightBars(indices, className = 'comparing') {
+                const bars = elements.barsContainer.querySelectorAll('.bar');
+                bars.forEach((bar, i) => {
+                    bar.classList.remove('comparing', 'swapping', 'searching', 'found', 'not-found');
+                    if (indices.includes(i)) {
+                        bar.classList.add(className);
+                    }
+                    if (state.sortedIndices.includes(i)) {
+                        bar.classList.add('sorted');
+                    }
+                });
+            }
+
+            function markSorted(indices) {
+                indices.forEach(i => {
+                    if (!state.sortedIndices.includes(i)) {
+                        state.sortedIndices.push(i);
+                    }
+                });
+                const bars = elements.barsContainer.querySelectorAll('.bar');
+                indices.forEach(i => {
+                    if (bars[i]) bars[i].classList.add('sorted');
+                });
+            }
+
+            // =====================================================
+            // UI UPDATES
+            // =====================================================
+
+            function updateUI() {
+                const algo = ALGORITHMS[state.category][state.algorithm];
+                
+                elements.algorithmName.textContent = algo.name;
+                elements.algorithmDescription.textContent = algo.description;
+                elements.timeComplexity.textContent = algo.timeComplexity;
+                elements.spaceComplexity.textContent = algo.spaceComplexity;
+                
+                updatePseudocode();
+                updateStats();
+                updateButtonStates();
+            }
+
+            function updatePseudocode(activeLine = -1) {
+                const algo = ALGORITHMS[state.category][state.algorithm];
+                elements.pseudocode.innerHTML = algo.pseudocode.map((line, i) => {
+                    const isActive = i === activeLine;
+                    return `<div class="pseudocode-line ${isActive ? 'active' : ''}">${line}</div>`;
+                }).join('');
+            }
+
+            function updateStats() {
+                elements.comparisons.textContent = state.comparisons;
+                elements.swaps.textContent = state.swaps;
+            }
+
+            function resetStats() {
+                state.comparisons = 0;
+                state.swaps = 0;
+                state.currentLine = -1;
+                state.highlightedIndices = [];
+                state.sortedIndices = [];
+                updateStats();
+                updatePseudocode();
+            }
+
+            function updateButtonStates() {
+                elements.btnPlayPause.textContent = state.isRunning && !state.isPaused ? '⏸' : '▶';
+                elements.btnStepBack.disabled = !history.canGoBack() || state.isRunning;
+                elements.btnStepForward.disabled = state.isRunning;
+            }
+
+            function showStatus(message, type = 'info') {
+                elements.statusMessage.textContent = message;
+                elements.statusMessage.className = `status-message ${type} visible`;
+                
+                setTimeout(() => {
+                    elements.statusMessage.classList.remove('visible');
+                }, 3000);
+            }
+
+            // =====================================================
+            // PLAYBACK CONTROLS
+            // =====================================================
+
+            async function togglePlayPause() {
+                if (state.isRunning) {
+                    if (state.isPaused) {
+                        state.isPaused = false;
+                        updateButtonStates();
+                    } else {
+                        state.isPaused = true;
+                        updateButtonStates();
+                    }
+                } else {
+                    await runAlgorithm();
+                }
+            }
+
+            function stopAlgorithm() {
+                if (abortController) {
+                    abortController.abort();
+                    abortController = null;
+                }
+                state.isRunning = false;
+                state.isPaused = false;
+                updateButtonStates();
+            }
+
+            async function stepForward() {
+                if (state.isRunning) return;
+
+                // Check if we can step forward in history
+                const nextState = history.forward();
+                if (nextState) {
+                    restoreState(nextState);
+                    return;
+                }
+
+                // Otherwise, run one step of the algorithm
+                state.isRunning = true;
+                abortController = new AbortController();
+                
+                try {
+                    await runSingleStep();
+                } catch (e) {
+                    if (e.name !== 'AbortError') console.error(e);
+                }
+                
+                state.isRunning = false;
+                updateButtonStates();
+            }
+
+            function stepBack() {
+                const prevState = history.back();
+                if (prevState) {
+                    restoreState(prevState);
+                }
+            }
+
+            function restoreState(savedState) {
+                state.array = savedState.array;
+                state.comparisons = savedState.comparisons;
+                state.swaps = savedState.swaps;
+                state.highlightedIndices = savedState.highlightedIndices || [];
+                state.sortedIndices = savedState.sortedIndices || [];
+                state.currentLine = savedState.currentLine;
+                
+                if (state.category === 'pathfinding') {
+                    state.visitedCells = savedState.visitedCells || [];
+                    state.pathCells = savedState.pathCells || [];
+                    state.currentCell = savedState.currentCell;
+                    updateGridDisplay();
+                } else {
+                    renderBars();
+                }
+                
+                updateStats();
+                updatePseudocode(state.currentLine);
+                updateButtonStates();
+            }
+
+            function saveState(line = -1) {
+                const snapshot = {
+                    array: [...state.array],
+                    comparisons: state.comparisons,
+                    swaps: state.swaps,
+                    highlightedIndices: [...state.highlightedIndices],
+                    sortedIndices: [...state.sortedIndices],
+                    currentLine: line,
+                    visitedCells: [...state.visitedCells],
+                    pathCells: [...state.pathCells],
+                    currentCell: state.currentCell ? { ...state.currentCell } : null
+                };
+                history.push(snapshot);
+            }
+
+            function reset() {
+                stopAlgorithm();
+                history.reset();
+                
+                if (state.category === 'pathfinding') {
+                    clearGridPath();
+                } else {
+                    state.array = [...state.originalArray];
+                }
+                
+                resetStats();
+                renderBars();
+                updateUI();
+            }
+
+            // =====================================================
+            // ALGORITHM EXECUTION
+            // =====================================================
+
+            /**
+             * Main algorithm runner with async throttling
+             * Uses await sleep(delay) for visual effect
+             */
+            async function runAlgorithm() {
+                state.isRunning = true;
+                state.isPaused = false;
+                abortController = new AbortController();
+                history.reset();
+                resetStats();
+                
+                if (state.category !== 'pathfinding') {
+                    state.array = [...state.originalArray];
+                    renderBars();
+                }
+                
+                updateButtonStates();
+                saveState();
+
+                try {
+                    switch (state.category) {
+                        case 'sorting':
+                            await runSortingAlgorithm();
+                            break;
+                        case 'searching':
+                            await runSearchingAlgorithm();
+                            break;
+                        case 'pathfinding':
+                            await runPathfindingAlgorithm();
+                            break;
+                    }
+                } catch (e) {
+                    if (e.name !== 'AbortError') {
+                        console.error(e);
+                        showStatus('Algorithm error occurred', 'error');
+                    }
+                }
+
+                state.isRunning = false;
+                state.isPaused = false;
+                updateButtonStates();
+            }
+
+            /**
+             * Wait for delay, respecting pause state
+             */
+            async function waitWithPause() {
+                while (state.isPaused) {
+                    await sleep(50);
+                    if (abortController?.signal.aborted) {
+                        throw new DOMException('Aborted', 'AbortError');
+                    }
+                }
+                
+                if (abortController?.signal.aborted) {
+                    throw new DOMException('Aborted', 'AbortError');
+                }
+                
+                await sleep(state.speed);
+            }
+
+            // =====================================================
+            // SORTING ALGORITHMS
+            // =====================================================
+
+            async function runSortingAlgorithm() {
+                switch (state.algorithm) {
+                    case 'bubble':
+                        await bubbleSort();
+                        break;
+                    case 'selection':
+                        await selectionSort();
+                        break;
+                    case 'insertion':
+                        await insertionSort();
+                        break;
+                    case 'merge':
+                        await mergeSort(0, state.array.length - 1);
+                        break;
+                    case 'quick':
+                        await quickSort(0, state.array.length - 1);
+                        break;
+                }
+                
+                await celebrateSorting();
+            }
+
+            async function bubbleSort() {
+                const n = state.array.length;
+                
+                for (let i = 0; i < n - 1; i++) {
+                    updatePseudocode(0);
+                    await waitWithPause();
+                    
+                    for (let j = 0; j < n - i - 1; j++) {
+                        updatePseudocode(1);
+                        
+                        // Compare
+                        state.comparisons++;
+                        state.highlightedIndices = [j, j + 1];
+                        highlightBars([j, j + 1], 'comparing');
+                        updateStats();
+                        saveState(2);
+                        await waitWithPause();
+                        
+                        updatePseudocode(2);
+                        
+                        if (state.array[j] > state.array[j + 1]) {
+                            // Swap
+                            updatePseudocode(3);
+                            highlightBars([j, j + 1], 'swapping');
+                            await waitWithPause();
+                            
+                            [state.array[j], state.array[j + 1]] = [state.array[j + 1], state.array[j]];
+                            state.swaps++;
+                            updateStats();
+                            renderBars();
+                            highlightBars([j, j + 1], 'swapping');
+                            saveState(3);
+                            await waitWithPause();
+                        }
+                    }
+                    
+                    // Mark last element as sorted
+                    markSorted([n - i - 1]);
+                }
+                
+                markSorted([0]);
+            }
+
+            async function selectionSort() {
+                const n = state.array.length;
+                
+                for (let i = 0; i < n - 1; i++) {
+                    updatePseudocode(0);
+                    let minIdx = i;
+                    updatePseudocode(1);
+                    await waitWithPause();
+                    
+                    for (let j = i + 1; j < n; j++) {
+                        updatePseudocode(2);
+                        
+                        state.comparisons++;
+                        highlightBars([minIdx, j], 'comparing');
+                        updateStats();
+                        saveState(3);
+                        await waitWithPause();
+                        
+                        updatePseudocode(3);
+                        if (state.array[j] < state.array[minIdx]) {
+                            minIdx = j;
+                            updatePseudocode(4);
+                        }
+                    }
+                    
+                    if (minIdx !== i) {
+                        updatePseudocode(5);
+                        highlightBars([i, minIdx], 'swapping');
+                        await waitWithPause();
+                        
+                        [state.array[i], state.array[minIdx]] = [state.array[minIdx], state.array[i]];
+                        state.swaps++;
+                        updateStats();
+                        renderBars();
+                        saveState(5);
+                        await waitWithPause();
+                    }
+                    
+                    markSorted([i]);
+                }
+                
+                markSorted([n - 1]);
+            }
+
+            async function insertionSort() {
+                const n = state.array.length;
+                
+                for (let i = 1; i < n; i++) {
+                    updatePseudocode(0);
+                    let key = state.array[i];
+                    updatePseudocode(1);
+                    let j = i - 1;
+                    updatePseudocode(2);
+                    
+                    highlightBars([i], 'comparing');
+                    await waitWithPause();
+                    
+                    while (j >= 0 && state.array[j] > key) {
+                        updatePseudocode(3);
+                        state.comparisons++;
+                        
+                        highlightBars([j, j + 1], 'swapping');
+                        await waitWithPause();
+                        
+                        updatePseudocode(4);
+                        state.array[j + 1] = state.array[j];
+                        state.swaps++;
+                        updateStats();
+                        renderBars();
+                        saveState(4);
+                        
+                        updatePseudocode(5);
+                        j--;
+                        await waitWithPause();
+                    }
+                    
+                    if (j >= 0) {
+                        state.comparisons++;
+                        updateStats();
+                    }
+                    
+                    updatePseudocode(6);
+                    state.array[j + 1] = key;
+                    renderBars();
+                    saveState(6);
+                    await waitWithPause();
+                }
+                
+                // Mark all as sorted
+                for (let i = 0; i < n; i++) {
+                    markSorted([i]);
+                }
+            }
+
+            async function mergeSort(left, right) {
+                if (left >= right) return;
+                
+                updatePseudocode(1);
+                await waitWithPause();
+                
+                const mid = Math.floor((left + right) / 2);
+                updatePseudocode(2);
+                
+                // Highlight the range being processed
+                const range = [];
+                for (let i = left; i <= right; i++) range.push(i);
+                highlightBars(range, 'comparing');
+                await waitWithPause();
+                
+                updatePseudocode(3);
+                await mergeSort(left, mid);
+                
+                updatePseudocode(4);
+                await mergeSort(mid + 1, right);
+                
+                updatePseudocode(5);
+                await merge(left, mid, right);
+            }
+
+            async function merge(left, mid, right) {
+                const leftArr = state.array.slice(left, mid + 1);
+                const rightArr = state.array.slice(mid + 1, right + 1);
+                
+                let i = 0, j = 0, k = left;
+                
+                while (i < leftArr.length && j < rightArr.length) {
+                    state.comparisons++;
+                    highlightBars([left + i, mid + 1 + j], 'comparing');
+                    updateStats();
+                    await waitWithPause();
+                    
+                    if (leftArr[i] <= rightArr[j]) {
+                        state.array[k] = leftArr[i];
+                        i++;
+                    } else {
+                        state.array[k] = rightArr[j];
+                        j++;
+                    }
+                    
+                    highlightBars([k], 'swapping');
+                    renderBars();
+                    saveState(5);
+                    state.swaps++;
+                    updateStats();
+                    k++;
+                    await waitWithPause();
+                }
+                
+                while (i < leftArr.length) {
+                    state.array[k] = leftArr[i];
+                    highlightBars([k], 'swapping');
+                    renderBars();
+                    saveState(5);
+                    state.swaps++;
+                    updateStats();
+                    i++;
+                    k++;
+                    await waitWithPause();
+                }
+                
+                while (j < rightArr.length) {
+                    state.array[k] = rightArr[j];
+                    highlightBars([k], 'swapping');
+                    renderBars();
+                    saveState(5);
+                    state.swaps++;
+                    updateStats();
+                    j++;
+                    k++;
+                    await waitWithPause();
+                }
+                
+                // Mark merged section
+                if (left === 0 && right === state.array.length - 1) {
+                    for (let idx = left; idx <= right; idx++) {
+                        markSorted([idx]);
+                    }
+                }
+            }
+
+            async function quickSort(low, high) {
+                if (low >= high) return;
+                
+                updatePseudocode(1);
+                await waitWithPause();
+                
+                updatePseudocode(2);
+                const pi = await partition(low, high);
+                
+                updatePseudocode(3);
+                await quickSort(low, pi - 1);
+                
+                updatePseudocode(4);
+                await quickSort(pi + 1, high);
+                
+                // Mark pivot as sorted when returning from recursion
+                if (low === 0 && high === state.array.length - 1) {
+                    for (let i = low; i <= high; i++) {
+                        markSorted([i]);
+                    }
+                }
+            }
+
+            async function partition(low, high) {
+                const pivot = state.array[high];
+                let i = low - 1;
+                
+                // Highlight pivot
+                highlightBars([high], 'searching');
+                await waitWithPause();
+                
+                for (let j = low; j < high; j++) {
+                    state.comparisons++;
+                    highlightBars([j, high], 'comparing');
+                    updateStats();
+                    saveState(2);
+                    await waitWithPause();
+                    
+                    if (state.array[j] < pivot) {
+                        i++;
+                        highlightBars([i, j], 'swapping');
+                        await waitWithPause();
+                        
+                        [state.array[i], state.array[j]] = [state.array[j], state.array[i]];
+                        state.swaps++;
+                        updateStats();
+                        renderBars();
+                        saveState(2);
+                        await waitWithPause();
+                    }
+                }
+                
+                highlightBars([i + 1, high], 'swapping');
+                await waitWithPause();
+                
+                [state.array[i + 1], state.array[high]] = [state.array[high], state.array[i + 1]];
+                state.swaps++;
+                updateStats();
+                renderBars();
+                saveState(2);
+                
+                markSorted([i + 1]);
+                await waitWithPause();
+                
+                return i + 1;
+            }
+
+            // =====================================================
+            // SEARCHING ALGORITHMS
+            // =====================================================
+
+            async function runSearchingAlgorithm() {
+                let target = state.searchTarget;
+                
+                // If no target specified, pick a random element
+                if (target === null || target === undefined) {
+                    target = state.array[Math.floor(Math.random() * state.array.length)];
+                    state.searchTarget = target;
+                    elements.searchTarget.value = target;
+                }
+                
+                showStatus(`Searching for: ${target}`, 'info');
+                
+                let result;
+                switch (state.algorithm) {
+                    case 'linear':
+                        result = await linearSearch(target);
+                        break;
+                    case 'binary':
+                        result = await binarySearch(target);
+                        break;
+                }
+                
+                if (result !== -1) {
+                    highlightBars([result], 'found');
+                    showStatus(`Found ${target} at index ${result}!`, 'success');
+                    triggerCelebration();
+                } else {
+                    highlightBars([], 'not-found');
+                    const bars = elements.barsContainer.querySelectorAll('.bar');
+                    bars.forEach(bar => bar.classList.add('not-found'));
+                    showStatus(`${target} not found in array`, 'error');
+                }
+            }
+
+            async function linearSearch(target) {
+                const n = state.array.length;
+                
+                updatePseudocode(0);
+                
+                for (let i = 0; i < n; i++) {
+                    updatePseudocode(1);
+                    state.comparisons++;
+                    highlightBars([i], 'searching');
+                    updateStats();
+                    saveState(2);
+                    await waitWithPause();
+                    
+                    updatePseudocode(2);
+                    if (state.array[i] === target) {
+                        updatePseudocode(3);
+                        return i;
+                    }
+                }
+                
+                updatePseudocode(4);
+                return -1;
+            }
+
+            async function binarySearch(target) {
+                let low = 0;
+                let high = state.array.length - 1;
+                
+                updatePseudocode(1);
+                await waitWithPause();
+                
+                while (low <= high) {
+                    updatePseudocode(2);
+                    
+                    const mid = Math.floor((low + high) / 2);
+                    updatePseudocode(3);
+                    
+                    state.comparisons++;
+                    highlightBars([mid], 'searching');
+                    
+                    // Also show the current search range
+                    const bars = elements.barsContainer.querySelectorAll('.bar');
+                    for (let i = 0; i < bars.length; i++) {
+                        if (i < low || i > high) {
+                            bars[i].style.opacity = '0.3';
+                        } else {
+                            bars[i].style.opacity = '1';
+                        }
+                    }
+                    
+                    updateStats();
+                    saveState(4);
+                    await waitWithPause();
+                    
+                    updatePseudocode(4);
+                    if (state.array[mid] === target) {
+                        // Reset opacity
+                        bars.forEach(bar => bar.style.opacity = '1');
+                        return mid;
+                    }
+                    
+                    updatePseudocode(5);
+                    if (state.array[mid] < target) {
+                        low = mid + 1;
+                    } else {
+                        updatePseudocode(6);
+                        high = mid - 1;
+                    }
+                    
+                    await waitWithPause();
+                }
+                
+                // Reset opacity
+                const bars = elements.barsContainer.querySelectorAll('.bar');
+                bars.forEach(bar => bar.style.opacity = '1');
+                
+                updatePseudocode(7);
+                return -1;
+            }
+
+            // =====================================================
+            // PATHFINDING ALGORITHMS
+            // =====================================================
+
+            async function runPathfindingAlgorithm() {
+                clearGridPath();
+                
+                switch (state.algorithm) {
+                    case 'bfs':
+                        await bfs();
+                        break;
+                    case 'dfs':
+                        await dfs();
+                        break;
+                }
+            }
+
+            async function bfs() {
+                const queue = [{ ...state.startPos, path: [{ ...state.startPos }] }];
+                const visited = new Set();
+                visited.add(`${state.startPos.row},${state.startPos.col}`);
+                
+                updatePseudocode(1);
+                saveState(1);
+                await waitWithPause();
+                
+                updatePseudocode(2);
+                await waitWithPause();
+                
+                while (queue.length > 0) {
+                    updatePseudocode(3);
+                    
+                    const current = queue.shift();
+                    updatePseudocode(4);
+                    
+                    state.currentCell = { row: current.row, col: current.col };
+                    state.comparisons++;
+                    updateStats();
+                    updateGridDisplay();
+                    saveState(4);
+                    await waitWithPause();
+                    
+                    // Check if reached end
+                    updatePseudocode(5);
+                    if (current.row === state.endPos.row && current.col === state.endPos.col) {
+                        // Found path - animate it
+                        state.pathCells = current.path;
+                        state.currentCell = null;
+                        updateGridDisplay();
+                        showStatus(`Path found! Length: ${current.path.length}`, 'success');
+                        triggerCelebration();
+                        return;
+                    }
+                    
+                    // Add to visited visualization
+                    if (!(current.row === state.startPos.row && current.col === state.startPos.col)) {
+                        state.visitedCells.push({ row: current.row, col: current.col });
+                    }
+                    
+                    // Explore neighbors
+                    updatePseudocode(6);
+                    const neighbors = getNeighbors(current.row, current.col);
+                    
+                    for (const neighbor of neighbors) {
+                        const key = `${neighbor.row},${neighbor.col}`;
+                        
+                        updatePseudocode(7);
+                        if (!visited.has(key)) {
+                            visited.add(key);
+                            updatePseudocode(8);
+                            
+                            updatePseudocode(9);
+                            queue.push({
+                                ...neighbor,
+                                path: [...current.path, neighbor]
+                            });
+                            state.swaps++;
+                            updateStats();
+                        }
+                    }
+                    
+                    state.currentCell = null;
+                    updateGridDisplay();
+                }
+                
+                showStatus('No path found!', 'error');
+            }
+
+            async function dfs() {
+                const visited = new Set();
+                const path = [];
+                
+                updatePseudocode(0);
+                
+                const found = await dfsRecursive(state.startPos.row, state.startPos.col, visited, path);
+                
+                if (found) {
+                    state.pathCells = path;
+                    state.currentCell = null;
+                    updateGridDisplay();
+                    showStatus(`Path found! Length: ${path.length}`, 'success');
+                    triggerCelebration();
+                } else {
+                    showStatus('No path found!', 'error');
+                }
+            }
+
+            async function dfsRecursive(row, col, visited, path) {
+                const key = `${row},${col}`;
+                
+                updatePseudocode(1);
+                visited.add(key);
+                path.push({ row, col });
+                
+                state.currentCell = { row, col };
+                state.comparisons++;
+                updateStats();
+                
+                if (!(row === state.startPos.row && col === state.startPos.col)) {
+                    state.visitedCells.push({ row, col });
+                }
+                
+                updateGridDisplay();
+                saveState(1);
+                await waitWithPause();
+                
+                // Check if reached end
+                updatePseudocode(2);
+                if (row === state.endPos.row && col === state.endPos.col) {
+                    return true;
+                }
+                
+                // Explore neighbors
+                updatePseudocode(3);
+                const neighbors = getNeighbors(row, col);
+                
+                for (const neighbor of neighbors) {
+                    const neighborKey = `${neighbor.row},${neighbor.col}`;
+                    
+                    updatePseudocode(4);
+                    if (!visited.has(neighborKey)) {
+                        updatePseudocode(5);
+                        state.swaps++;
+                        updateStats();
+                        
+                        if (await dfsRecursive(neighbor.row, neighbor.col, visited, path)) {
+                            return true;
+                        }
+                    }
+                }
+                
+                // Backtrack
+                path.pop();
+                updatePseudocode(6);
+                return false;
+            }
+
+            function getNeighbors(row, col) {
+                const directions = [
+                    { row: -1, col: 0 }, // up
+                    { row: 1, col: 0 },  // down
+                    { row: 0, col: -1 }, // left
+                    { row: 0, col: 1 }   // right
+                ];
+                
+                const neighbors = [];
+                
+                for (const dir of directions) {
+                    const newRow = row + dir.row;
+                    const newCol = col + dir.col;
+                    
+                    if (
+                        newRow >= 0 && newRow < state.gridSize &&
+                        newCol >= 0 && newCol < state.gridSize &&
+                        state.grid[newRow][newCol] !== 1
+                    ) {
+                        neighbors.push({ row: newRow, col: newCol });
+                    }
+                }
+                
+                return neighbors;
+            }
+
+            // =====================================================
+            // SINGLE STEP EXECUTION
+            // =====================================================
+
+            let stepGenerator = null;
+
+            async function runSingleStep() {
+                // For simplicity, single step just plays and immediately pauses
+                // A full implementation would use generators for true step-by-step
+                showStatus('Step forward - use Play for continuous execution', 'info');
+            }
+
+            // =====================================================
+            // CELEBRATION ANIMATIONS
+            // =====================================================
+
+            async function celebrateSorting() {
+                const bars = elements.barsContainer.querySelectorAll('.bar');
+                
+                // Sequential green wave
+                for (let i = 0; i < bars.length; i++) {
+                    bars[i].classList.remove('comparing', 'swapping', 'searching');
+                    bars[i].classList.add('sorted');
+                    await sleep(20);
+                }
+                
+                showStatus('Sorting complete!', 'success');
+                triggerCelebration();
+            }
+
+            function triggerCelebration() {
+                const colors = ['#22c55e', '#3b82f6', '#8b5cf6', '#ec4899', '#fbbf24', '#06b6d4'];
+                const overlay = elements.celebrationOverlay;
+                
+                for (let i = 0; i < 50; i++) {
+                    const confetti = document.createElement('div');
+                    confetti.className = 'confetti';
+                    confetti.style.left = `${Math.random() * 100}%`;
+                    confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                    confetti.style.animationDelay = `${Math.random() * 0.5}s`;
+                    confetti.style.animationDuration = `${2 + Math.random() * 2}s`;
+                    overlay.appendChild(confetti);
+                    
+                    // Remove after animation
+                    setTimeout(() => confetti.remove(), 4000);
+                }
+            }
+
+            // =====================================================
+            // INITIALIZE
+            // =====================================================
+
+            // Start the application
+            init();
+
+            // Expose for debugging (optional)
+            return {
+                state,
+                reset,
+                generateNewArray
+            };
+        })();
+    </script>
+</body>
+</html>
